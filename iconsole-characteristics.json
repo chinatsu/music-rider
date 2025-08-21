@@ -1,0 +1,279 @@
+{
+  "characteristics": [
+    {
+      "uuid": "00002a00-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001800-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ",
+        "WRITE"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002a01-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001800-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ",
+        "WRITE"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002a04-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001800-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002a05-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001801-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ",
+        "INDICATE"
+      ],
+      "descriptors": [
+        {
+          "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+          "service_uuid": "00001801-0000-1000-8000-00805f9b34fb",
+          "characteristic_uuid": "00002a05-0000-1000-8000-00805f9b34fb"
+        }
+      ]
+    },
+    {
+      "uuid": "00002a24-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "0000180a-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002a26-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "0000180a-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002a27-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "0000180a-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002a29-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "0000180a-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002ac9-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001800-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002acc-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002ace-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "NOTIFY"
+      ],
+      "descriptors": [
+        {
+          "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+          "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+          "characteristic_uuid": "00002ace-0000-1000-8000-00805f9b34fb"
+        }
+      ]
+    },
+    {
+      "uuid": "00002ad2-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "NOTIFY"
+      ],
+      "descriptors": [
+        {
+          "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+          "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+          "characteristic_uuid": "00002ad2-0000-1000-8000-00805f9b34fb"
+        }
+      ]
+    },
+    {
+      "uuid": "00002ad3-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ",
+        "NOTIFY"
+      ],
+      "descriptors": [
+        {
+          "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+          "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+          "characteristic_uuid": "00002ad3-0000-1000-8000-00805f9b34fb"
+        }
+      ]
+    },
+    {
+      "uuid": "00002ad4-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002ad5-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002ad6-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002ad7-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002ad8-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "00002ad9-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "WRITE",
+        "INDICATE"
+      ],
+      "descriptors": [
+        {
+          "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+          "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+          "characteristic_uuid": "00002ad9-0000-1000-8000-00805f9b34fb"
+        }
+      ]
+    },
+    {
+      "uuid": "00002ada-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "NOTIFY"
+      ],
+      "descriptors": [
+        {
+          "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+          "service_uuid": "00001826-0000-1000-8000-00805f9b34fb",
+          "characteristic_uuid": "00002ada-0000-1000-8000-00805f9b34fb"
+        }
+      ]
+    },
+    {
+      "uuid": "0000fff1-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "0000fff0-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "NOTIFY"
+      ],
+      "descriptors": [
+        {
+          "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+          "service_uuid": "0000fff0-0000-1000-8000-00805f9b34fb",
+          "characteristic_uuid": "0000fff1-0000-1000-8000-00805f9b34fb"
+        }
+      ]
+    },
+    {
+      "uuid": "0000fff2-0000-1000-8000-00805f9b34fb",
+      "service_uuid": "0000fff0-0000-1000-8000-00805f9b34fb",
+      "properties": [
+        "WRITE_WITHOUT_RESPONSE",
+        "WRITE"
+      ],
+      "descriptors": [
+        {
+          "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+          "service_uuid": "0000fff0-0000-1000-8000-00805f9b34fb",
+          "characteristic_uuid": "0000fff2-0000-1000-8000-00805f9b34fb"
+        }
+      ]
+    },
+    {
+      "uuid": "02f00000-0000-0000-0000-00000000ff00",
+      "service_uuid": "02f00000-0000-0000-0000-00000000fe00",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "02f00000-0000-0000-0000-00000000ff01",
+      "service_uuid": "02f00000-0000-0000-0000-00000000fe00",
+      "properties": [
+        "WRITE_WITHOUT_RESPONSE",
+        "WRITE"
+      ],
+      "descriptors": []
+    },
+    {
+      "uuid": "02f00000-0000-0000-0000-00000000ff02",
+      "service_uuid": "02f00000-0000-0000-0000-00000000fe00",
+      "properties": [
+        "READ",
+        "NOTIFY"
+      ],
+      "descriptors": [
+        {
+          "uuid": "00002901-0000-1000-8000-00805f9b34fb",
+          "service_uuid": "02f00000-0000-0000-0000-00000000fe00",
+          "characteristic_uuid": "02f00000-0000-0000-0000-00000000ff0"
+        },
+        {
+          "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+          "service_uuid": "02f00000-0000-0000-0000-00000000fe00",
+          "characteristic_uuid": "02f00000-0000-0000-0000-00000000ff02"
+        }
+      ]
+    },
+    {
+      "uuid": "02f00000-0000-0000-0000-00000000ff03",
+      "service_uuid": "02f00000-0000-0000-0000-00000000fe00",
+      "properties": [
+        "READ"
+      ],
+      "descriptors": []
+    }
+  ]
+}
