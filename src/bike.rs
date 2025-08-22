@@ -73,12 +73,42 @@ impl Bike {
         Ok(())
     }
 
+    pub async fn set_level_from_loudness(&self, loudness: f64) -> anyhow::Result<()> {
+        let old_min = -33.;
+        let old_max = -9.;
+        let new_min = 0.;
+        let new_max = 32.;
+
+        let scaled = ((loudness - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min;
+        println!("Loudness: {}", loudness);
+        println!("Scaled: {}", scaled);
+        let level = (scaled as i16).max(32).min(1);
+        self.set_level(level).await
+    }
+
     pub async fn set_level(&self, level: i16) -> anyhow::Result<()> {
         if level < 1 || level > 32 {
             return Err(anyhow::anyhow!("Level must be between 1 and 32"));
         }
         self.set_cadence(level).await?;
         self.set_power(level).await
+    }
+
+    pub async fn print_stats(&self) -> anyhow::Result<()> {
+        if let Some(stats) = self.read().await? {
+            println!(
+                "Speed: {:.2} km/h, Cadence: {:.2} rpm, Distance: {:.2} km, Resistance: {:.2}, Power: {:.2} W, Calories: {:.2}, Heart Rate: {:.2} bpm, Time: {:.2} s",
+                stats.speed,
+                stats.cadence,
+                stats.distance,
+                stats.resistance,
+                stats.power,
+                stats.calories,
+                stats.heart_rate,
+                stats.time
+            );
+        };
+        Ok(())
     }
 
     pub async fn read(&self) -> anyhow::Result<Option<FTMSData>> {
@@ -158,7 +188,7 @@ impl Bike {
     }
 
     async fn request_control(&self) -> anyhow::Result<()> {
-        let request_control = [0x00];
+        let request_control = [FTMSControlOpCode::RequestControl as u8];
         self.write(&request_control).await
     }
 
