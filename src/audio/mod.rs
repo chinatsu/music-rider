@@ -73,6 +73,13 @@ impl Audio {
         }
     }
 
+    pub fn flush(&mut self) {
+        if let Some(output) = &mut self.audio_output {
+            output.flush();
+            self.audio_output = None;
+        }
+    }
+
     pub async fn play_track(&mut self) -> anyhow::Result<usize> {
         let path = self.directory.join(&self.tracks[self.current_track]);
         println!("Playing track: {}", path.display());

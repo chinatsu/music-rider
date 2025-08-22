@@ -21,16 +21,16 @@ pub struct FTMSData {
 enum FTMSControlOpCode {
     RequestControl = 0x00,
     TargetPower = 0x05,
-    Start = 0x07,
+    // Start = 0x07,
     Stop = 0x08,
-    SpinDownControl = 0x13,
+    // SpinDownControl = 0x13,
     TargetCadence = 0x14,
-    Success = 0x80,
+    // Success = 0x80,
 }
 
 pub enum StopCode {
     Stop = 0x01,
-    Pause = 0x02,
+    // Pause = 0x02,
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +56,7 @@ impl Bike {
         bike.set_characteristics().await?;
         bike.subscribe().await?;
         bike.request_control().await?;
+        println!("Found and connected to bike: {}", bike.name);
         Ok(bike)
     }
 
@@ -177,7 +178,7 @@ impl Bike {
 
     pub async fn notifications(&self) -> anyhow::Result<Vec<u8>> {
         let mut notifications = self.peripheral.notifications().await?.take(1);
-        while let Some(data) = notifications.next().await {
+        if let Some(data) = notifications.next().await {
             return Ok(data.value);
         }
 

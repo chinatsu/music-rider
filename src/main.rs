@@ -32,6 +32,7 @@ async fn main() -> anyhow::Result<()> {
             break;
         }
     }
+    audio.flush();
 
     bike.disconnect().await?;
 
