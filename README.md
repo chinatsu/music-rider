@@ -2,11 +2,12 @@
 
 ride along to ~~the loudness~~ bass of your favorite album
 
-the code is a mess rn, but
+the code is a mess rn, but the program
 
-- connect to an iconsole+ bike
-- load up an album
-- during playback of songs, a few frequency bins usingn fft, average the bins to a number and scale it to a suitable(?) level on the bike
+- connects to an iconsole+ bike
+- loads up an album
+- plays back songs in sequence
+    - during playback of songs, it collects a sample into a few low frequency bins using fft, averages the bins to a number and scales it to a suitable(?) level on the bike
 
 ## acknowledgements
 
