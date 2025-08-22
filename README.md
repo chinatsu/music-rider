@@ -2,6 +2,8 @@
 
 ride along to ~~the loudness~~ amplitudes of your favorite album
 
+https://github.com/user-attachments/assets/effcd5a9-989f-49a0-a52a-80dea591ef85
+
 the code is a mess rn
 
 the program connects to an iconsole+ bike (mine is a `iConsole+0028`), loads up an album or a song, and plays it back once a connection to the bike has been established.
