@@ -7,39 +7,44 @@ mod output;
 use output::AudioOutput;
 
 pub struct Audio {
-    directory: PathBuf,
+    path: PathBuf,
     pub album_length: usize,
     current_track: usize,
-    tracks: Vec<String>,
+    tracks: Vec<PathBuf>,
     audio_output: Option<Box<dyn AudioOutput>>,
     last_message_sent: i64,
+    update_frequency: i64,
 }
 
 impl Audio {
-    pub fn new(directory: PathBuf) -> Self {
+    pub fn new(path: PathBuf, update_frequency: i64) -> Self {
         let mut audio = Audio {
-            directory: directory.clone(),
+            path: path.clone(),
             album_length: 0,
             current_track: 0,
             tracks: Vec::new(),
             audio_output: None,
             last_message_sent: -1,
+            update_frequency: update_frequency
         };
         audio.tracks = audio.files();
         audio.album_length = audio.tracks.len();
         audio
     }
 
-    fn files(&self) -> Vec<String> {
+    fn files(&self) -> Vec<PathBuf> {
         let mut flacs = Vec::new();
-        if let Ok(entries) = std::fs::read_dir(&self.directory) {
+        if self.path.is_file() {
+            return vec![self.path.clone()];
+        }
+        if let Ok(entries) = std::fs::read_dir(&self.path) {
             for entry in entries.flatten() {
                 if let Some(ext) = entry.path().extension()
                     && ext == "flac"
                     && let Some(name) = entry.path().file_name()
                     && let Some(name_str) = name.to_str()
                 {
-                    flacs.push(name_str.to_string());
+                    flacs.push(self.path.join(name_str.to_string()));
                 }
             }
         }
@@ -47,7 +52,7 @@ impl Audio {
         flacs
     }
 
-    pub fn next_track(&mut self) -> Option<String> {
+    pub fn next_track(&mut self) -> Option<PathBuf> {
         if self.current_track < self.album_length {
             self.current_track += 1;
 
@@ -69,7 +74,7 @@ impl Audio {
     }
 
     pub fn play_track(&mut self, sender: Sender<Vec<f32>>) -> anyhow::Result<usize> {
-        let path = self.directory.join(&self.tracks[self.current_track]);
+        let path = &self.tracks[self.current_track];
         println!("Playing track: {}", path.display());
         let src = std::fs::File::open(&path).expect("failed to open media");
         let mss = symphonia::core::io::MediaSourceStream::new(Box::new(src), Default::default());
@@ -139,7 +144,7 @@ impl Audio {
                         let t = tb.calc_time(packet.ts());
 
                         let secs = (t.seconds as f64 + t.frac) as i64;
-                        if secs % 3 == 0 && self.last_message_sent != secs {
+                        if secs % self.update_frequency == 0 && self.last_message_sent != secs {
                             let mut sample: SampleBuffer<f32> =
                                 SampleBuffer::new(decoded.capacity() as u64, *decoded.spec());
                             sample.copy_interleaved_ref(decoded.clone());

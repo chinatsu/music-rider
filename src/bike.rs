@@ -74,18 +74,6 @@ impl Bike {
         Ok(())
     }
 
-    pub async fn set_level_from_fft(&self, fft_score: f64) -> anyhow::Result<()> {
-        let old_min = 0.;
-        let old_max = 1.;
-        let new_min = 1.;
-        let new_max = 32.;
-
-        let scaled = (((fft_score - old_min) / (old_max - old_min)) * (new_max - new_min)
-            + new_min)
-            .clamp(1., 32.);
-        self.set_level(scaled as i16).await
-    }
-
     pub async fn set_level(&self, level: i16) -> anyhow::Result<()> {
         if !(1..=32).contains(&level) {
             return Err(anyhow::anyhow!("Level must be between 1 and 32"));
