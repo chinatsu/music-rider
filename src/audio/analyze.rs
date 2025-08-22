@@ -8,7 +8,7 @@ pub struct Analyzer {
 impl Analyzer {
     pub fn new(channels: u32, samplerate: u32) -> Self {
         Analyzer {
-            ebu: EbuR128::new(channels, samplerate, Mode::S).unwrap(),
+            ebu: EbuR128::new(channels, samplerate, Mode::M).unwrap(),
         }
     }
 
@@ -18,7 +18,7 @@ impl Analyzer {
     }
 
     pub fn get_loudness(&self) -> anyhow::Result<f64> {
-        let ebu = self.ebu.loudness_shortterm()?;
+        let ebu = self.ebu.loudness_momentary()?;
         Ok(ebu)
     }
 

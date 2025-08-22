@@ -26,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
         for _ in 0..audio.album_length {
             audio.play_track(tx.clone()).unwrap();
             if let Some(track) = audio.next_track() {
-                audio.reset_analyzer();
+                audio.reset();
                 println!("Next track: {track}");
             } else {
                 println!("No more tracks to play.");

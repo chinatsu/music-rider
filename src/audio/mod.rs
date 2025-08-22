@@ -1,10 +1,6 @@
 use std::{path::PathBuf, sync::mpsc::Sender};
 
-use symphonia::core::{
-    audio::SampleBuffer,
-    formats::FormatOptions,
-    meta::MetadataOptions,
-};
+use symphonia::core::{audio::SampleBuffer, formats::FormatOptions, meta::MetadataOptions};
 
 pub mod analyze;
 use analyze::Analyzer;
@@ -19,6 +15,7 @@ pub struct Audio {
     current_track: usize,
     tracks: Vec<String>,
     audio_output: Option<Box<dyn AudioOutput>>,
+    last_message_sent: u64,
 }
 
 impl Audio {
@@ -30,6 +27,7 @@ impl Audio {
             current_track: 0,
             tracks: Vec::new(),
             audio_output: None,
+            last_message_sent: 0,
         };
         audio.tracks = audio.files();
         audio.album_length = audio.tracks.len();
@@ -42,10 +40,11 @@ impl Audio {
             for entry in entries.flatten() {
                 if let Some(ext) = entry.path().extension()
                     && ext == "flac"
-                        && let Some(name) = entry.path().file_name()
-                            && let Some(name_str) = name.to_str() {
-                                flacs.push(name_str.to_string());
-                            }
+                    && let Some(name) = entry.path().file_name()
+                    && let Some(name_str) = name.to_str()
+                {
+                    flacs.push(name_str.to_string());
+                }
             }
         }
         flacs.sort();
@@ -55,18 +54,19 @@ impl Audio {
     pub fn next_track(&mut self) -> Option<String> {
         if self.current_track < self.album_length {
             self.current_track += 1;
-            
+
             self.tracks.get(self.current_track).cloned()
         } else {
             None
         }
     }
 
-    pub fn reset_analyzer(&mut self) {
+    pub fn reset(&mut self) {
         if let Some(analyzer) = &mut self.analyzer {
             analyzer.reset();
             self.analyzer = None;
         }
+        self.last_message_sent = 0;
     }
 
     pub fn flush(&mut self) {
@@ -159,13 +159,17 @@ impl Audio {
                     if let Some(tb) = tb {
                         let t = tb.calc_time(packet.ts());
 
-                        let secs = t.seconds as f64 + t.frac;
-                        if secs as u64 % 3 == 0 && format!("{secs:.1}").ends_with("0")
-                            && let Some(analyzer) = &self.analyzer {
-                                let loudness = analyzer.get_loudness()?;
-                                let _ = sender.send(loudness);
-                            }
+                        let secs = (t.seconds as f64 + t.frac) as u64;
+                        if secs % 3 == 0
+                            && self.last_message_sent != secs
+                            && let Some(analyzer) = &self.analyzer
+                        {
+                            let loudness = analyzer.get_loudness()?;
+                            let _ = sender.send(loudness);
+                            self.last_message_sent = secs;
+                        }
                     }
+
                 }
                 Err(symphonia::core::errors::Error::IoError(_)) => continue,
                 Err(symphonia::core::errors::Error::DecodeError(_)) => continue,

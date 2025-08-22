@@ -75,7 +75,7 @@ impl Bike {
     }
 
     pub async fn set_level_from_loudness(&self, loudness: f64) -> anyhow::Result<()> {
-        let old_min = -33.;
+        let old_min = -66.;
         let old_max = -9.;
         let new_min = 0.;
         let new_max = 32.;
