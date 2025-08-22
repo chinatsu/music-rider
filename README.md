@@ -37,6 +37,20 @@ Options:
   -V, --version                Print version
 ```
 
+## known problems
+
+- ctrl+c/`SIGINT` does not cleanly disconnect the bike nor flush the audio stack nicely
+    - you can always reconnect the bike by rerunning the program, and load a short audio track in.
+      once the track has finished playing, a clean shutdown/disconnect is performed
+    - i know of ctrlc crates and all, but i just haven't yet figured out how to send those signals here and there
+- the bluetooth connection doesn't always find the bike
+    - tbh, just restart the program until it does
+    - i suspect one of the cases for me is that my bluetooth dongle sets up two devices.
+      when the "wrong" device discovers the bike, the other one doesn't see it or something
+
+also note, the analysis stuff isn't perfect yet.
+i'm experimenting with various techniques, and i gotta kill my legs for a bit to figure out if i like one or the other.
+
 
 ## acknowledgements
 
