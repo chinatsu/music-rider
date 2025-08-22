@@ -83,7 +83,6 @@ impl Bike {
         let scaled = (((fft_score - old_min) / (old_max - old_min)) * (new_max - new_min)
             + new_min)
             .clamp(1., 32.);
-        println!("Setting level from loudness: {fft_score} to scaled: {scaled}");
         self.set_level(scaled as i16).await
     }
 

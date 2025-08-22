@@ -40,9 +40,9 @@ async fn main() -> anyhow::Result<()> {
     });
 
     while let Ok(value) = rx.recv() {
-        let score = analyzer.low_freq_score(value).unwrap();
-        bike.set_level_from_fft(score).await.unwrap();
-        bike.print_stats().await.unwrap();
+        let score = analyzer.low_freq_score(value)?;
+        bike.set_level_from_fft(score).await?;
+        bike.print_stats().await?;
     }
 
     bike.disconnect().await?;
