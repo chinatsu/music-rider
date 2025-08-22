@@ -1,6 +1,8 @@
 use btleplug::api::Manager as _;
 use btleplug::platform::Manager;
 use clap::Parser as _;
+use crossterm::{ExecutableCommand, QueueableCommand, cursor, terminal};
+use std::io::{Write, stdout};
 use std::sync::mpsc::channel;
 
 mod audio;
@@ -27,12 +29,11 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or(44100);
 
     tokio::spawn(async move {
-        let mut audio = audio::Audio::new(args.path, args.frequency);
+        let mut audio = audio::Audio::new(args.path);
         for _ in 0..audio.album_length {
             if play_rx.recv().is_ok() {
                 audio.play_track(tx.clone()).unwrap();
                 if let Some(track) = audio.next_track() {
-                    audio.reset();
                     println!("Next track: {}", track.display());
                 } else {
                     println!("No more tracks to play.");
@@ -46,32 +47,51 @@ async fn main() -> anyhow::Result<()> {
     let analyzer = Analyzer::new(sample_rate, args.scale);
     let mut prev_level = 0;
     if args.no_discovery {
+        let mut stdout = stdout();
+        stdout.execute(cursor::Hide).unwrap();
         play_tx.send(true).unwrap();
         while let Ok(value) = rx.recv() {
+            stdout.queue(cursor::SavePosition).unwrap();
             let score = analyzer.freq_score(value)?;
             let level = freq_score_to_level(score);
-            println!("level: {level} :: freq score: {score}");
-            if level == prev_level {
-                println!("(Skipping level setting)");
-            }
-            prev_level = level;
+            stdout
+                .write_all(format!("\rlevel: {level} :: freq score: {score:.5}").as_bytes())
+                .unwrap();
+            stdout.queue(cursor::RestorePosition).unwrap();
+            stdout.flush().unwrap();
+            stdout.queue(cursor::RestorePosition).unwrap();
+            stdout
+                .queue(terminal::Clear(terminal::ClearType::FromCursorDown))
+                .unwrap();
         }
+        stdout.execute(cursor::Show).unwrap();
     } else {
         let adapters = manager.adapters().await?;
         let bike = Bike::new(&adapters).await?;
+        let mut stdout = stdout();
 
         play_tx.send(true).unwrap();
 
         while let Ok(value) = rx.recv() {
+            stdout.queue(cursor::SavePosition).unwrap();
             let score = analyzer.freq_score(value)?;
             let level = freq_score_to_level(score);
-            if level != prev_level {
+            if ![level, level + 1, level - 1].contains(&prev_level) {
                 prev_level = level;
                 bike.set_level(level).await?;
             }
-            bike.print_stats().await?;
+            stdout
+                .write_all(format!("\rlevel: {level} :: freq score: {score:.5}").as_bytes())
+                .unwrap();
+            stdout.queue(cursor::RestorePosition).unwrap();
+            stdout.flush().unwrap();
+            stdout.queue(cursor::RestorePosition).unwrap();
+            stdout
+                .queue(terminal::Clear(terminal::ClearType::FromCursorDown))
+                .unwrap();
+            // bike.print_stats().await?;
         }
-
+        stdout.execute(cursor::Show).unwrap();
         bike.disconnect().await?;
     }
 

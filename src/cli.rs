@@ -25,13 +25,4 @@ pub struct Args {
         help = "Disable bike discovery (enables playback without a bike, emits level changes to stdout)"
     )]
     pub no_discovery: bool,
-
-    #[arg(
-        short,
-        long,
-        default_value_t = 3,
-        action,
-        help = "Update frequency in seconds"
-    )]
-    pub frequency: i64,
 }

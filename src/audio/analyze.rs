@@ -14,6 +14,9 @@ impl Analyzer {
     }
 
     pub fn freq_score(&self, samplebuffer: Vec<f32>) -> anyhow::Result<f64> {
+        if !samplebuffer.len().is_power_of_two() {
+            return Ok(0.);
+        }
         let spectrum_hann_window = samples_fft_to_spectrum(
             // (windowed) samples
             &samplebuffer,

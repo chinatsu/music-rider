@@ -14,20 +14,16 @@ pub struct Audio {
     current_track: usize,
     tracks: Vec<PathBuf>,
     audio_output: Option<Box<dyn AudioOutput>>,
-    last_message_sent: i64,
-    update_frequency: i64,
 }
 
 impl Audio {
-    pub fn new(path: PathBuf, update_frequency: i64) -> Self {
+    pub fn new(path: PathBuf) -> Self {
         let mut audio = Audio {
             path: path.clone(),
             album_length: 0,
             current_track: 0,
             tracks: Vec::new(),
             audio_output: None,
-            last_message_sent: -1,
-            update_frequency,
         };
         audio.tracks = audio.files();
         audio.album_length = audio.tracks.len();
@@ -62,10 +58,6 @@ impl Audio {
         } else {
             None
         }
-    }
-
-    pub fn reset(&mut self) {
-        self.last_message_sent = -1;
     }
 
     pub fn flush(&mut self) {
@@ -131,18 +123,11 @@ impl Audio {
                     if let Some(audio_output) = self.audio_output.as_mut() {
                         audio_output.write(decoded.clone()).unwrap();
                     }
-                    if let Some(tb) = tb {
-                        let t = tb.calc_time(packet.ts());
 
-                        let secs = (t.seconds as f64 + t.frac) as i64;
-                        if secs % self.update_frequency == 0 && self.last_message_sent != secs {
-                            let mut sample: SampleBuffer<f32> =
-                                SampleBuffer::new(decoded.capacity() as u64, *decoded.spec());
-                            sample.copy_interleaved_ref(decoded.clone());
-                            let _ = sender.send(sample.samples().to_vec());
-                            self.last_message_sent = secs;
-                        }
-                    }
+                    let mut sample: SampleBuffer<f32> =
+                        SampleBuffer::new(decoded.capacity() as u64, *decoded.spec());
+                    sample.copy_interleaved_ref(decoded.clone());
+                    let _ = sender.send(sample.samples().to_vec());
                 }
                 Err(symphonia::core::errors::Error::IoError(_)) => continue,
                 Err(symphonia::core::errors::Error::DecodeError(_)) => continue,
