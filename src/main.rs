@@ -26,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
         audio.play_track().await?;
         if let Some(track) = audio.next_track() {
             audio.reset_analyzer();
-            println!("Next track: {}", track);
+            println!("Next track: {track}");
         } else {
             println!("No more tracks to play.");
             break;

@@ -1,5 +1,5 @@
 use ebur128::{EbuR128, Mode};
-use symphonia::core::{audio::{AudioBuffer, AudioBufferRef, SampleBuffer, SignalSpec}, conv::IntoSample, sample::Sample};
+use symphonia::core::audio::SampleBuffer;
 
 pub struct Analyzer {
     ebu: EbuR128,

@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
 use symphonia::core::{
-    audio::{AudioBuffer, RawSampleBuffer, SampleBuffer},
-    conv::IntoSample,
+    audio::SampleBuffer,
     formats::FormatOptions,
     meta::MetadataOptions,
 };
@@ -28,7 +27,7 @@ pub struct Audio {
 impl Audio {
     pub fn new(directory: PathBuf, bike: Option<Bike>) -> Self {
         let mut audio = Audio {
-            bike: bike,
+            bike,
             analyzer: None,
             directory: directory.clone(),
             album_length: 0,
@@ -45,15 +44,12 @@ impl Audio {
         let mut flacs = Vec::new();
         if let Ok(entries) = std::fs::read_dir(&self.directory) {
             for entry in entries.flatten() {
-                if let Some(ext) = entry.path().extension() {
-                    if ext == "flac" {
-                        if let Some(name) = entry.path().file_name() {
-                            if let Some(name_str) = name.to_str() {
+                if let Some(ext) = entry.path().extension()
+                    && ext == "flac"
+                        && let Some(name) = entry.path().file_name()
+                            && let Some(name_str) = name.to_str() {
                                 flacs.push(name_str.to_string());
                             }
-                        }
-                    }
-                }
             }
         }
         flacs.sort();
@@ -63,8 +59,8 @@ impl Audio {
     pub fn next_track(&mut self) -> Option<String> {
         if self.current_track < self.album_length {
             self.current_track += 1;
-            let track = self.tracks.get(self.current_track).cloned();
-            track
+            
+            self.tracks.get(self.current_track).cloned()
         } else {
             None
         }
@@ -120,7 +116,7 @@ impl Audio {
                     unimplemented!();
                 }
                 Err(err) => {
-                    println!("Error reading packet: {}", err);
+                    println!("Error reading packet: {err}");
                     return Ok(0);
                 }
             };
@@ -149,7 +145,7 @@ impl Audio {
 
                     if let Some(analyzer) = &mut self.analyzer {
                         let mut sample: SampleBuffer<f32> =
-                            SampleBuffer::new(decoded.capacity() as u64, decoded.spec().clone());
+                            SampleBuffer::new(decoded.capacity() as u64, *decoded.spec());
                         sample.copy_interleaved_ref(decoded.clone());
                         analyzer.add_frames(sample)?;
                     }
@@ -161,21 +157,20 @@ impl Audio {
                         let t = tb.calc_time(packet.ts());
 
                         let secs = t.seconds as f64 + t.frac;
-                        if secs as u64 % 3 == 0 && format!("{:.1}", secs).ends_with("0") {
-                            if let Some(analyzer) = &self.analyzer {
+                        if secs as u64 % 3 == 0 && format!("{secs:.1}").ends_with("0")
+                            && let Some(analyzer) = &self.analyzer {
                                 let loudness = analyzer.get_loudness()?;
                                 if let Some(bike) = &self.bike {
                                     bike.set_level_from_loudness(loudness).await?;
                                     bike.print_stats().await?;
                                 }
                             }
-                        }
                     }
                 }
                 Err(symphonia::core::errors::Error::IoError(_)) => continue,
                 Err(symphonia::core::errors::Error::DecodeError(_)) => continue,
                 Err(err) => {
-                    println!("{}", err);
+                    println!("{err}");
                     return Ok(0);
                 }
             }

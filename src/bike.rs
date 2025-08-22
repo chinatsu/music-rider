@@ -80,14 +80,14 @@ impl Bike {
         let new_max = 32.;
 
         let scaled = ((loudness - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min;
-        println!("Loudness: {}", loudness);
-        println!("Scaled: {}", scaled);
-        let level = (scaled as i16).max(32).min(1);
+        println!("Loudness: {loudness}");
+        println!("Scaled: {scaled}");
+        let level = (scaled as i16).clamp(1, 32);
         self.set_level(level).await
     }
 
     pub async fn set_level(&self, level: i16) -> anyhow::Result<()> {
-        if level < 1 || level > 32 {
+        if !(1..=32).contains(&level) {
             return Err(anyhow::anyhow!("Level must be between 1 and 32"));
         }
         self.set_cadence(level).await?;
@@ -244,20 +244,16 @@ async fn get_peripheral(adapters: &Vec<Adapter>) -> anyhow::Result<(Peripheral, 
         .next()
         .await
     {
-        match event {
-            CentralEvent::DeviceDiscovered(id) => {
-                let central = adapters.iter().nth(1).unwrap();
-                let peripheral = central.peripheral(&id).await?;
-                if let Some(name) = peripheral.properties().await.unwrap().unwrap().local_name {
-                    if name.contains("Console") || name.contains("bike") || name.contains("fitness")
-                    {
-                        println!("Found bike: {}", name);
-                        peripheral_meta = Some((peripheral, name.to_string()));
-                        break;
-                    }
+        if let CentralEvent::DeviceDiscovered(id) = event {
+            let central = adapters.get(1).unwrap();
+            let peripheral = central.peripheral(&id).await?;
+            if let Some(name) = peripheral.properties().await.unwrap().unwrap().local_name
+                && (name.contains("Console") || name.contains("bike") || name.contains("fitness"))
+                {
+                    println!("Found bike: {name}");
+                    peripheral_meta = Some((peripheral, name.to_string()));
+                    break;
                 }
-            }
-            _ => {}
         }
     }
     for adapter in adapters {

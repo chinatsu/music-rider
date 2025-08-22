@@ -23,7 +23,7 @@ pub type Result<T> = result::Result<T, AudioOutputError>;
 mod pulseaudio {
     use super::{AudioOutput, AudioOutputError, Result};
 
-    use symphonia::core::{audio::*, conv::IntoSample};
+    use symphonia::core::audio::*;
     use symphonia::core::units::Duration;
 
     use libpulse_binding as pulse;
@@ -79,7 +79,7 @@ mod pulseaudio {
             match pa_result {
                 Ok(pa) => Ok(Box::new(PulseAudioOutput { pa, sample_buf })),
                 Err(err) => {
-                    error!("audio output stream open error: {}", err);
+                    error!("audio output stream open error: {err}");
 
                     Err(AudioOutputError::OpenStreamError)
                 }
@@ -100,7 +100,7 @@ mod pulseaudio {
             // Write interleaved samples to PulseAudio.
             match self.pa.write(self.sample_buf.as_bytes()) {
                 Err(err) => {
-                    error!("audio output stream write error: {}", err);
+                    error!("audio output stream write error: {err}");
 
                     Err(AudioOutputError::StreamClosedError)
                 }
@@ -146,7 +146,7 @@ mod pulseaudio {
                 _ => {
                     // If a Symphonia channel cannot map to a PulseAudio position then return None
                     // because PulseAudio will not be able to open a stream with invalid channels.
-                    warn!("failed to map channel {:?} to output", channel);
+                    warn!("failed to map channel {channel:?} to output");
                     return None;
                 }
             }
