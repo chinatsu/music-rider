@@ -7,6 +7,8 @@ mod audio;
 mod bike;
 use bike::Bike;
 
+use crate::audio::analyze::Analyzer;
+
 const ALBUM_DIR: &str = "/home/cn/nas/media/Music/MONO/Hymn to the Immortal Wind/";
 
 #[tokio::main]
@@ -14,6 +16,7 @@ async fn main() -> anyhow::Result<()> {
     let manager = Manager::new().await.unwrap();
     let adapters = manager.adapters().await?;
     let bike = Bike::new(&adapters).await?;
+    let analyzer = Analyzer::new();
     let (tx, rx) = channel();
 
     tokio::spawn(async move {
@@ -37,8 +40,9 @@ async fn main() -> anyhow::Result<()> {
     });
 
     while let Ok(value) = rx.recv() {
-        bike.set_level_from_loudness(value).await?;
-        bike.print_stats().await?;
+        let score = analyzer.low_freq_score(value).unwrap();
+        bike.set_level_from_fft(score).await.unwrap();
+        bike.print_stats().await.unwrap();
     }
 
     bike.disconnect().await?;

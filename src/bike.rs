@@ -74,13 +74,16 @@ impl Bike {
         Ok(())
     }
 
-    pub async fn set_level_from_loudness(&self, loudness: f64) -> anyhow::Result<()> {
-        let old_min = -66.;
-        let old_max = -9.;
-        let new_min = 0.;
+    pub async fn set_level_from_fft(&self, fft_score: f64) -> anyhow::Result<()> {
+        let old_min = 0.;
+        let old_max = 1.;
+        let new_min = 1.;
         let new_max = 32.;
 
-        let scaled = (((loudness - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min).clamp(1., 32.);
+        let scaled = (((fft_score - old_min) / (old_max - old_min)) * (new_max - new_min)
+            + new_min)
+            .clamp(1., 32.);
+        println!("Setting level from loudness: {fft_score} to scaled: {scaled}");
         self.set_level(scaled as i16).await
     }
 
@@ -247,11 +250,10 @@ async fn get_peripheral(adapters: &Vec<Adapter>) -> anyhow::Result<(Peripheral, 
             let peripheral = central.peripheral(&id).await?;
             if let Some(name) = peripheral.properties().await.unwrap().unwrap().local_name
                 && (name.contains("Console") || name.contains("bike") || name.contains("fitness"))
-                {
-                    println!("Found bike: {name}");
-                    peripheral_meta = Some((peripheral, name.to_string()));
-                    break;
-                }
+            {
+                peripheral_meta = Some((peripheral, name.to_string()));
+                break;
+            }
         }
     }
     for adapter in adapters {

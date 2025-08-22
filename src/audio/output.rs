@@ -244,8 +244,7 @@ mod cpal {
                     sample_rate: cpal::SampleRate(spec.rate),
                     buffer_size: cpal::BufferSize::Default,
                 }
-            }
-            else {
+            } else {
                 // Use the default config for Windows.
                 device
                     .default_output_config()
@@ -291,13 +290,21 @@ mod cpal {
 
             let resampler = if spec.rate != config.sample_rate.0 {
                 info!("resampling {} Hz to {} Hz", spec.rate, config.sample_rate.0);
-                Some(Resampler::new(spec, config.sample_rate.0 as usize, duration))
-            }
-            else {
+                Some(Resampler::new(
+                    spec,
+                    config.sample_rate.0 as usize,
+                    duration,
+                ))
+            } else {
                 None
             };
 
-            Ok(Box::new(CpalAudioOutputImpl { ring_buf_producer, sample_buf, stream, resampler }))
+            Ok(Box::new(CpalAudioOutputImpl {
+                ring_buf_producer,
+                sample_buf,
+                stream,
+                resampler,
+            }))
         }
     }
 
@@ -315,8 +322,7 @@ mod cpal {
                     Some(resampled) => resampled,
                     None => return Ok(()),
                 }
-            }
-            else {
+            } else {
                 // Resampling is not required. Interleave the sample for cpal using a sample buffer.
                 self.sample_buf.copy_interleaved_ref(decoded);
 

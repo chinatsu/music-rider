@@ -1,33 +1,29 @@
 use std::{path::PathBuf, sync::mpsc::Sender};
-
 use symphonia::core::{audio::SampleBuffer, formats::FormatOptions, meta::MetadataOptions};
 
 pub mod analyze;
-use analyze::Analyzer;
 
 mod output;
 use output::AudioOutput;
 
 pub struct Audio {
     directory: PathBuf,
-    pub analyzer: Option<Analyzer>,
     pub album_length: usize,
     current_track: usize,
     tracks: Vec<String>,
     audio_output: Option<Box<dyn AudioOutput>>,
-    last_message_sent: u64,
+    last_message_sent: i64,
 }
 
 impl Audio {
     pub fn new(directory: PathBuf) -> Self {
         let mut audio = Audio {
-            analyzer: None,
             directory: directory.clone(),
             album_length: 0,
             current_track: 0,
             tracks: Vec::new(),
             audio_output: None,
-            last_message_sent: 0,
+            last_message_sent: -1,
         };
         audio.tracks = audio.files();
         audio.album_length = audio.tracks.len();
@@ -62,11 +58,7 @@ impl Audio {
     }
 
     pub fn reset(&mut self) {
-        if let Some(analyzer) = &mut self.analyzer {
-            analyzer.reset();
-            self.analyzer = None;
-        }
-        self.last_message_sent = 0;
+        self.last_message_sent = -1;
     }
 
     pub fn flush(&mut self) {
@@ -76,7 +68,7 @@ impl Audio {
         }
     }
 
-    pub fn play_track(&mut self, sender: Sender<f64>) -> anyhow::Result<usize> {
+    pub fn play_track(&mut self, sender: Sender<Vec<f32>>) -> anyhow::Result<usize> {
         let path = self.directory.join(&self.tracks[self.current_track]);
         println!("Playing track: {}", path.display());
         let src = std::fs::File::open(&path).expect("failed to open media");
@@ -98,12 +90,6 @@ impl Audio {
             Some(track) => track.clone(),
             _ => return Ok(0),
         };
-        if self.analyzer.is_none() {
-            self.analyzer = Some(Analyzer::new(
-                track.codec_params.channels.iter().len() as u32,
-                track.codec_params.sample_rate.unwrap(),
-            ));
-        }
 
         let dec_opts: symphonia::core::codecs::DecoderOptions = Default::default();
         let mut decoder = symphonia::default::get_codecs()
@@ -146,30 +132,21 @@ impl Audio {
                             .replace(output::try_open(spec, duration).unwrap());
                     }
 
-                    if let Some(analyzer) = &mut self.analyzer {
-                        let mut sample: SampleBuffer<f32> =
-                            SampleBuffer::new(decoded.capacity() as u64, *decoded.spec());
-                        sample.copy_interleaved_ref(decoded.clone());
-                        analyzer.add_frames(sample)?;
-                    }
-
                     if let Some(audio_output) = self.audio_output.as_mut() {
-                        audio_output.write(decoded).unwrap();
+                        audio_output.write(decoded.clone()).unwrap();
                     }
                     if let Some(tb) = tb {
                         let t = tb.calc_time(packet.ts());
 
-                        let secs = (t.seconds as f64 + t.frac) as u64;
-                        if secs % 3 == 0
-                            && self.last_message_sent != secs
-                            && let Some(analyzer) = &self.analyzer
-                        {
-                            let loudness = analyzer.get_loudness()?;
-                            let _ = sender.send(loudness);
+                        let secs = (t.seconds as f64 + t.frac) as i64;
+                        if secs % 3 == 0 && self.last_message_sent != secs {
+                            let mut sample: SampleBuffer<f32> =
+                                SampleBuffer::new(decoded.capacity() as u64, *decoded.spec());
+                            sample.copy_interleaved_ref(decoded.clone());
+                            let _ = sender.send(sample.samples().to_vec());
                             self.last_message_sent = secs;
                         }
                     }
-
                 }
                 Err(symphonia::core::errors::Error::IoError(_)) => continue,
                 Err(symphonia::core::errors::Error::DecodeError(_)) => continue,
