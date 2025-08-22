@@ -75,8 +75,8 @@ impl Bike {
     }
 
     pub async fn set_level(&self, level: i16) -> anyhow::Result<()> {
-        if !(1..=32).contains(&level) {
-            return Err(anyhow::anyhow!("Level must be between 1 and 32"));
+        if !(1..=64).contains(&level) {
+            return Err(anyhow::anyhow!("Level must be between 1 and 64"));
         }
         self.set_cadence(level).await?;
         self.set_power(level).await

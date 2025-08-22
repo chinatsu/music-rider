@@ -1,5 +1,7 @@
 use std::{path::PathBuf, sync::mpsc::Sender};
-use symphonia::core::{audio::SampleBuffer, formats::FormatOptions, meta::MetadataOptions};
+use symphonia::core::{
+    audio::SampleBuffer, formats::FormatOptions, meta::MetadataOptions, probe::ProbeResult,
+};
 
 pub mod analyze;
 
@@ -25,7 +27,7 @@ impl Audio {
             tracks: Vec::new(),
             audio_output: None,
             last_message_sent: -1,
-            update_frequency: update_frequency
+            update_frequency,
         };
         audio.tracks = audio.files();
         audio.album_length = audio.tracks.len();
@@ -44,7 +46,7 @@ impl Audio {
                     && let Some(name) = entry.path().file_name()
                     && let Some(name_str) = name.to_str()
                 {
-                    flacs.push(self.path.join(name_str.to_string()));
+                    flacs.push(self.path.join(name_str));
                 }
             }
         }
@@ -74,18 +76,7 @@ impl Audio {
     }
 
     pub fn play_track(&mut self, sender: Sender<Vec<f32>>) -> anyhow::Result<usize> {
-        let path = &self.tracks[self.current_track];
-        println!("Playing track: {}", path.display());
-        let src = std::fs::File::open(&path).expect("failed to open media");
-        let mss = symphonia::core::io::MediaSourceStream::new(Box::new(src), Default::default());
-        let mut hint = symphonia::core::probe::Hint::new();
-        hint.with_extension("flac");
-        let meta_opts: MetadataOptions = Default::default();
-        let fmt_opts: FormatOptions = Default::default();
-        let probed = symphonia::default::get_probe()
-            .format(&hint, mss, &fmt_opts, &meta_opts)
-            .expect("unsupported format");
-
+        let probed = get_probe(&self.tracks[self.current_track]);
         let mut format = probed.format;
         let track = match format
             .tracks()
@@ -162,4 +153,34 @@ impl Audio {
             }
         }
     }
+}
+
+pub fn get_probe(path: &PathBuf) -> ProbeResult {
+    let src = std::fs::File::open(path).expect("failed to open media");
+    let mss = symphonia::core::io::MediaSourceStream::new(Box::new(src), Default::default());
+    let mut hint = symphonia::core::probe::Hint::new();
+    hint.with_extension("flac");
+    let meta_opts: MetadataOptions = Default::default();
+    let fmt_opts: FormatOptions = Default::default();
+    symphonia::default::get_probe()
+        .format(&hint, mss, &fmt_opts, &meta_opts)
+        .expect("unsupported format")
+}
+
+pub fn get_flac_from_dir(path: PathBuf) -> Option<PathBuf> {
+    if path.is_file() {
+        return Some(path.clone());
+    }
+    if let Ok(entries) = std::fs::read_dir(&path) {
+        for entry in entries.flatten() {
+            if let Some(ext) = entry.path().extension()
+                && ext == "flac"
+                && let Some(name) = entry.path().file_name()
+                && let Some(name_str) = name.to_str()
+            {
+                return Some(path.join(name_str));
+            }
+        }
+    }
+    None
 }
