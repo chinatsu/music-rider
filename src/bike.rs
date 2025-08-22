@@ -79,10 +79,8 @@ impl Bike {
         let new_min = 0.;
         let new_max = 32.;
 
-        let scaled = ((loudness - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min;
-        println!("Loudness: {loudness}");
-        println!("Scaled: {scaled}");
-        let level = (scaled as i16).clamp(1, 32);
+        let scaled = (((loudness - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min).clamp(1., 32.);
+        let level = (scaled as i16);
         self.set_level(level).await
     }
 
