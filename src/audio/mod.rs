@@ -84,7 +84,6 @@ impl Audio {
             .make(&track.codec_params, &dec_opts)
             .expect("unsupported codec");
         let track_id = track.id;
-        let tb = track.codec_params.time_base;
 
         loop {
             let packet = match format.next_packet() {
@@ -92,8 +91,7 @@ impl Audio {
                 Err(symphonia::core::errors::Error::ResetRequired) => {
                     unimplemented!();
                 }
-                Err(err) => {
-                    println!("Error reading packet: {err}");
+                Err(_) => {
                     return Ok(0);
                 }
             };
