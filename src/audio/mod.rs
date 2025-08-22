@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::mpsc::Sender};
 
 use symphonia::core::{
     audio::SampleBuffer,
@@ -12,10 +12,7 @@ use analyze::Analyzer;
 mod output;
 use output::AudioOutput;
 
-use crate::bike::Bike;
-
 pub struct Audio {
-    bike: Option<Bike>,
     directory: PathBuf,
     pub analyzer: Option<Analyzer>,
     pub album_length: usize,
@@ -25,9 +22,8 @@ pub struct Audio {
 }
 
 impl Audio {
-    pub fn new(directory: PathBuf, bike: Option<Bike>) -> Self {
+    pub fn new(directory: PathBuf) -> Self {
         let mut audio = Audio {
-            bike,
             analyzer: None,
             directory: directory.clone(),
             album_length: 0,
@@ -80,7 +76,7 @@ impl Audio {
         }
     }
 
-    pub async fn play_track(&mut self) -> anyhow::Result<usize> {
+    pub fn play_track(&mut self, sender: Sender<f64>) -> anyhow::Result<usize> {
         let path = self.directory.join(&self.tracks[self.current_track]);
         println!("Playing track: {}", path.display());
         let src = std::fs::File::open(&path).expect("failed to open media");
@@ -167,10 +163,7 @@ impl Audio {
                         if secs as u64 % 3 == 0 && format!("{secs:.1}").ends_with("0")
                             && let Some(analyzer) = &self.analyzer {
                                 let loudness = analyzer.get_loudness()?;
-                                if let Some(bike) = &self.bike {
-                                    bike.set_level_from_loudness(loudness).await?;
-                                    bike.print_stats().await?;
-                                }
+                                let _ = sender.send(loudness);
                             }
                     }
                 }
