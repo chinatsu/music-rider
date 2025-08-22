@@ -1,12 +1,12 @@
 # music-rider
 
-ride along to the loudness of your favorite album
+ride along to ~~the loudness~~ bass of your favorite album
 
 the code is a mess rn, but
 
 - connect to an iconsole+ bike
 - load up an album
-- during playback of songs, measure LUFS and scale it to a suitable(?) level on the bike
+- during playback of songs, a few frequency bins usingn fft, average the bins to a number and scale it to a suitable(?) level on the bike
 
 ## acknowledgements
 
