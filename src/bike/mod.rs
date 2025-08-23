@@ -6,7 +6,9 @@ use btleplug::{
 };
 use futures::StreamExt as _;
 
-// todo: how do i handle different bikes :(
+use different_bike::DifferentBike;
+use iconsole_0028::Iconsole0028Bike;
+
 pub trait Bike {
     async fn new(adapters: &[Adapter], max_level: i16) -> anyhow::Result<Self>
     where
@@ -15,6 +17,60 @@ pub trait Bike {
     async fn disconnect(&self) -> anyhow::Result<()>;
     async fn set_level(&self, level: i16) -> anyhow::Result<()>;
     async fn read(&self) -> anyhow::Result<Option<FTMSData>>;
+}
+
+pub enum BikeType {
+    Iconsole0028(Box<iconsole_0028::Iconsole0028Bike>),
+    DifferentBike(Box<different_bike::DifferentBike>),
+}
+
+#[allow(dead_code)]
+impl BikeType {
+    pub async fn connect(&self) -> anyhow::Result<bool> {
+        match self {
+            BikeType::Iconsole0028(bike) => bike.connect().await,
+            BikeType::DifferentBike(bike) => bike.connect().await,
+        }
+    }
+
+    pub async fn disconnect(&self) -> anyhow::Result<()> {
+        match self {
+            BikeType::Iconsole0028(bike) => bike.disconnect().await,
+            BikeType::DifferentBike(bike) => bike.disconnect().await,
+        }
+    }
+
+    pub async fn set_level(&self, level: i16) -> anyhow::Result<()> {
+        match self {
+            BikeType::Iconsole0028(bike) => bike.set_level(level).await,
+            BikeType::DifferentBike(bike) => bike.set_level(level).await,
+        }
+    }
+
+    pub async fn read(&self) -> anyhow::Result<Option<FTMSData>> {
+        match self {
+            BikeType::Iconsole0028(bike) => bike.read().await,
+            BikeType::DifferentBike(bike) => bike.read().await,
+        }
+    }
+}
+
+pub async fn bike_type_to_bike(
+    name: String,
+    adapters: &[Adapter],
+    max_level: i16,
+) -> Option<BikeType> {
+    if name.contains("0028") {
+        Some(BikeType::Iconsole0028(Box::new(
+            Iconsole0028Bike::new(adapters, max_level).await.unwrap(),
+        )))
+    } else if name.contains("some other bike") {
+        Some(BikeType::DifferentBike(Box::new(
+            DifferentBike::new(adapters, max_level).await.unwrap(),
+        )))
+    } else {
+        None
+    }
 }
 
 #[allow(dead_code)]

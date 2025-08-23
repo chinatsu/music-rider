@@ -8,10 +8,9 @@ use std::sync::mpsc::channel;
 mod audio;
 mod bike;
 mod cli;
-use bike::Bike;
 
 use crate::audio::analyze::Analyzer;
-use crate::bike::iconsole_0028::Iconsole0028Bike;
+use crate::bike::bike_type_to_bike;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -66,13 +65,9 @@ async fn main() -> anyhow::Result<()> {
     if args.debug && !args.no_discovery {
         let manager = Manager::new().await.unwrap();
         let adapters = manager.adapters().await?;
-        let bike = match args.bike_type.as_str() {
-            "0028" => Iconsole0028Bike::new(&adapters, args.max_level).await?,
-            _ => {
-                eprintln!("Unsupported bike type: {}", args.bike_type);
-                return Ok(());
-            }
-        };
+        let bike = bike_type_to_bike(args.bike_type, &adapters, args.max_level)
+            .await
+            .unwrap();
         loop {
             if let Some(data) = bike.read().await? {
                 let state = format!(
@@ -111,13 +106,9 @@ async fn main() -> anyhow::Result<()> {
         // connect to the bike
         let manager = Manager::new().await.unwrap();
         let adapters = manager.adapters().await?;
-        let bike = match args.bike_type.as_str() {
-            "0028" => Iconsole0028Bike::new(&adapters, args.max_level).await?,
-            _ => {
-                eprintln!("Unsupported bike type: {}", args.bike_type);
-                return Ok(());
-            }
-        };
+        let bike = bike_type_to_bike(args.bike_type, &adapters, args.max_level)
+            .await
+            .unwrap();
 
         // enable playback
         play_tx.send(true).unwrap();
