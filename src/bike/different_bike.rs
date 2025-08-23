@@ -1,6 +1,6 @@
 use btleplug::{
-    api::{CharPropFlags, Characteristic, Peripheral as _},
-    platform::{Adapter, Peripheral},
+    api::{CharPropFlags, Characteristic, Manager as _, Peripheral as _},
+    platform::{Manager, Peripheral},
 };
 use futures::StreamExt;
 use uuid::Uuid;
@@ -15,44 +15,11 @@ pub struct DifferentBike {
     max_level: i16,
 }
 
-impl DifferentBike {
-    async fn cleanup(&self) -> anyhow::Result<()> {
-        for characteristic in &self.idk {
-            self.peripheral.unsubscribe(characteristic).await?;
-        }
-        Ok(())
-    }
-
-    async fn set_characteristics(&mut self) -> anyhow::Result<()> {
-        self.peripheral.discover_services().await?;
-        for characteristic in self.peripheral.characteristics() {
-            if characteristic.properties.contains(CharPropFlags::NOTIFY) {
-                self.idk.push(characteristic.clone());
-            }
-        }
-        Ok(())
-    }
-
-    async fn subscribe(&self) -> anyhow::Result<()> {
-        for characteristic in &self.idk {
-            self.peripheral.subscribe(characteristic).await?;
-        }
-        Ok(())
-    }
-
-    async fn notifications(&self) -> anyhow::Result<(Vec<u8>, Uuid)> {
-        let mut notifications = self.peripheral.notifications().await?;
-        if let Some(data) = notifications.next().await {
-            return Ok((data.value, data.uuid));
-        }
-
-        Ok((Vec::new(), Uuid::nil()))
-    }
-}
-
 impl Bike for DifferentBike {
-    async fn new(adapters: &[Adapter], max_level: i16) -> anyhow::Result<Self> {
-        let meta = super::get_peripheral(adapters).await?;
+    async fn new(max_level: i16) -> anyhow::Result<Self> {
+        let manager = Manager::new().await.unwrap();
+        let adapters = manager.adapters().await?;
+        let meta = super::get_peripheral(&adapters).await?;
         let mut bike = DifferentBike {
             peripheral: meta.0,
             name: meta.1,
@@ -104,5 +71,40 @@ impl Bike for DifferentBike {
             heart_rate: 0.0,
             time: 0,
         }))
+    }
+}
+
+impl DifferentBike {
+    async fn cleanup(&self) -> anyhow::Result<()> {
+        for characteristic in &self.idk {
+            self.peripheral.unsubscribe(characteristic).await?;
+        }
+        Ok(())
+    }
+
+    async fn set_characteristics(&mut self) -> anyhow::Result<()> {
+        self.peripheral.discover_services().await?;
+        for characteristic in self.peripheral.characteristics() {
+            if characteristic.properties.contains(CharPropFlags::NOTIFY) {
+                self.idk.push(characteristic.clone());
+            }
+        }
+        Ok(())
+    }
+
+    async fn subscribe(&self) -> anyhow::Result<()> {
+        for characteristic in &self.idk {
+            self.peripheral.subscribe(characteristic).await?;
+        }
+        Ok(())
+    }
+
+    async fn notifications(&self) -> anyhow::Result<(Vec<u8>, Uuid)> {
+        let mut notifications = self.peripheral.notifications().await?;
+        if let Some(data) = notifications.next().await {
+            return Ok((data.value, data.uuid));
+        }
+
+        Ok((Vec::new(), Uuid::nil()))
     }
 }

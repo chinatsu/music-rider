@@ -1,6 +1,6 @@
 use btleplug::{
-    api::{CharPropFlags, Characteristic, Peripheral as _},
-    platform::{Adapter, Peripheral},
+    api::{CharPropFlags, Characteristic, Manager as _, Peripheral as _},
+    platform::{Manager, Peripheral},
 };
 use futures::StreamExt;
 use uuid::Uuid;
@@ -19,6 +19,78 @@ pub struct Iconsole0028Bike {
     stats: Option<Characteristic>,
     idk: Vec<Characteristic>,
     max_level: i16,
+}
+
+impl Bike for Iconsole0028Bike {
+    async fn new(max_level: i16) -> anyhow::Result<Self> {
+        let manager = Manager::new().await.unwrap();
+        let adapters = manager.adapters().await?;
+        let meta = super::get_peripheral(&adapters).await?;
+        let mut bike = Iconsole0028Bike {
+            peripheral: meta.0,
+            name: meta.1,
+            notify: None,
+            control: None,
+            stats: None,
+            idk: Vec::new(),
+            max_level,
+        };
+        bike.connect().await?;
+        bike.set_characteristics().await?;
+        bike.subscribe().await?;
+        bike.request_control().await?;
+        println!("Found and connected to bike: {}", bike.name);
+        Ok(bike)
+    }
+
+    async fn connect(&self) -> anyhow::Result<bool> {
+        let is_connected = self.peripheral.is_connected().await?;
+        if !is_connected {
+            self.peripheral.connect().await?;
+        }
+        Ok(is_connected)
+    }
+
+    async fn disconnect(&self) -> anyhow::Result<()> {
+        self.cleanup().await?;
+        self.peripheral.disconnect().await?;
+        Ok(())
+    }
+
+    async fn set_level(&self, level: i16) -> anyhow::Result<()> {
+        if !(1..=self.max_level).contains(&level) {
+            return Err(anyhow::anyhow!(
+                "Level must be between 1 and {}",
+                self.max_level
+            ));
+        }
+        // we might be able to set only one of these, but for now we're setting both
+        self.set_cadence(level).await?;
+        self.set_power(level).await
+    }
+
+    async fn read(&self) -> anyhow::Result<Option<FTMSData>> {
+        let (data, _) = self.notifications().await?;
+        if data.len() < 29 {
+            return Ok(None);
+        }
+        let distance = data[10] as f32 / 1000.;
+        let power = data[15]; // does not seem to be the correct field
+        let time = data[26] as u16 | ((data[27] as u16) << 8);
+        let cadence = (data[6] as f32 / 2.).round();
+        let speed = (data[2] as u16 | ((data[3] as u16) << 8)) as f32 / 100.;
+
+        Ok(Some(FTMSData {
+            speed,
+            cadence,
+            distance,
+            resistance: 0.0,
+            power,
+            calories: 0.0,
+            heart_rate: 0.0,
+            time,
+        }))
+    }
 }
 
 impl Iconsole0028Bike {
@@ -124,75 +196,5 @@ impl Iconsole0028Bike {
             return Err(anyhow::anyhow!("No control characteristic found"));
         }
         Ok(())
-    }
-}
-
-impl Bike for Iconsole0028Bike {
-    async fn new(adapters: &[Adapter], max_level: i16) -> anyhow::Result<Self> {
-        let meta = super::get_peripheral(adapters).await?;
-        let mut bike = Iconsole0028Bike {
-            peripheral: meta.0,
-            name: meta.1,
-            notify: None,
-            control: None,
-            stats: None,
-            idk: Vec::new(),
-            max_level,
-        };
-        bike.connect().await?;
-        bike.set_characteristics().await?;
-        bike.subscribe().await?;
-        bike.request_control().await?;
-        println!("Found and connected to bike: {}", bike.name);
-        Ok(bike)
-    }
-
-    async fn connect(&self) -> anyhow::Result<bool> {
-        let is_connected = self.peripheral.is_connected().await?;
-        if !is_connected {
-            self.peripheral.connect().await?;
-        }
-        Ok(is_connected)
-    }
-
-    async fn disconnect(&self) -> anyhow::Result<()> {
-        self.cleanup().await?;
-        self.peripheral.disconnect().await?;
-        Ok(())
-    }
-
-    async fn set_level(&self, level: i16) -> anyhow::Result<()> {
-        if !(1..=self.max_level).contains(&level) {
-            return Err(anyhow::anyhow!(
-                "Level must be between 1 and {}",
-                self.max_level
-            ));
-        }
-        // we might be able to set only one of these, but for now we're setting both
-        self.set_cadence(level).await?;
-        self.set_power(level).await
-    }
-
-    async fn read(&self) -> anyhow::Result<Option<FTMSData>> {
-        let (data, _) = self.notifications().await?;
-        if data.len() < 29 {
-            return Ok(None);
-        }
-        let distance = data[10] as f32 / 1000.;
-        let power = data[15]; // does not seem to be the correct field
-        let time = data[26] as u16 | ((data[27] as u16) << 8);
-        let cadence = (data[6] as f32 / 2.).round();
-        let speed = (data[2] as u16 | ((data[3] as u16) << 8)) as f32 / 100.;
-
-        Ok(Some(FTMSData {
-            speed,
-            cadence,
-            distance,
-            resistance: 0.0,
-            power,
-            calories: 0.0,
-            heart_rate: 0.0,
-            time,
-        }))
     }
 }

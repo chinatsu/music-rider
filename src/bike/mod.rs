@@ -1,5 +1,6 @@
 pub mod different_bike;
 pub mod iconsole_0028;
+pub mod non_bluetooth_bike;
 use btleplug::{
     api::{Central as _, CentralEvent, Peripheral as _, ScanFilter},
     platform::{Adapter, Peripheral},
@@ -8,9 +9,10 @@ use futures::StreamExt as _;
 
 use different_bike::DifferentBike;
 use iconsole_0028::Iconsole0028Bike;
+use non_bluetooth_bike::NonBluetoothBike;
 
 pub trait Bike {
-    async fn new(adapters: &[Adapter], max_level: i16) -> anyhow::Result<Self>
+    async fn new(max_level: i16) -> anyhow::Result<Self>
     where
         Self: Sized;
     async fn connect(&self) -> anyhow::Result<bool>;
@@ -20,8 +22,9 @@ pub trait Bike {
 }
 
 pub enum BikeType {
-    Iconsole0028(Box<iconsole_0028::Iconsole0028Bike>),
-    DifferentBike(Box<different_bike::DifferentBike>),
+    Iconsole0028(Box<Iconsole0028Bike>),
+    DifferentBike(Box<DifferentBike>),
+    NonBluetoothBike(Box<NonBluetoothBike>),
 }
 
 #[allow(dead_code)]
@@ -30,6 +33,7 @@ impl BikeType {
         match self {
             BikeType::Iconsole0028(bike) => bike.connect().await,
             BikeType::DifferentBike(bike) => bike.connect().await,
+            BikeType::NonBluetoothBike(bike) => bike.connect().await,
         }
     }
 
@@ -37,6 +41,7 @@ impl BikeType {
         match self {
             BikeType::Iconsole0028(bike) => bike.disconnect().await,
             BikeType::DifferentBike(bike) => bike.disconnect().await,
+            BikeType::NonBluetoothBike(bike) => bike.disconnect().await,
         }
     }
 
@@ -44,6 +49,7 @@ impl BikeType {
         match self {
             BikeType::Iconsole0028(bike) => bike.set_level(level).await,
             BikeType::DifferentBike(bike) => bike.set_level(level).await,
+            BikeType::NonBluetoothBike(bike) => bike.set_level(level).await,
         }
     }
 
@@ -51,30 +57,31 @@ impl BikeType {
         match self {
             BikeType::Iconsole0028(bike) => bike.read().await,
             BikeType::DifferentBike(bike) => bike.read().await,
+            BikeType::NonBluetoothBike(bike) => bike.read().await,
         }
     }
 }
 
-pub async fn bike_type_to_bike(
-    name: String,
-    adapters: &[Adapter],
-    max_level: i16,
-) -> Option<BikeType> {
-    if name.contains("0028") {
-        Some(BikeType::Iconsole0028(Box::new(
-            Iconsole0028Bike::new(adapters, max_level).await.unwrap(),
-        )))
-    } else if name.contains("some other bike") {
-        Some(BikeType::DifferentBike(Box::new(
-            DifferentBike::new(adapters, max_level).await.unwrap(),
-        )))
-    } else {
-        None
+pub async fn bike_type_to_bike(name: String, max_level: i16) -> Option<BikeType> {
+    match name.as_str() {
+        "0028" => Some(BikeType::Iconsole0028(Box::new(
+            Iconsole0028Bike::new(max_level).await.unwrap(),
+        ))),
+        "debug-bike" => Some(BikeType::DifferentBike(Box::new(
+            DifferentBike::new(max_level).await.unwrap(),
+        ))),
+        "non-bluetooth-bike" => Some(BikeType::NonBluetoothBike(Box::new(
+            NonBluetoothBike::new(max_level).await.unwrap(),
+        ))),
+        _ => {
+            eprintln!("Unknown bike type: {name}");
+            None
+        }
     }
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct FTMSData {
     pub speed: f32,
     pub cadence: f32,

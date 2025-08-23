@@ -1,5 +1,3 @@
-use btleplug::api::Manager as _;
-use btleplug::platform::Manager;
 use clap::Parser as _;
 use crossterm::{ExecutableCommand, QueueableCommand, cursor, terminal};
 use std::io::{Stdout, Write, stdout};
@@ -63,9 +61,7 @@ async fn main() -> anyhow::Result<()> {
 
     // try to figure out what gets sent from the bike
     if args.debug && !args.no_discovery {
-        let manager = Manager::new().await.unwrap();
-        let adapters = manager.adapters().await?;
-        let bike = bike_type_to_bike(args.bike_type, &adapters, args.max_level)
+        let bike = bike_type_to_bike(args.bike_type, args.max_level)
             .await
             .unwrap();
         loop {
@@ -104,9 +100,7 @@ async fn main() -> anyhow::Result<()> {
         stdout.execute(cursor::Show).unwrap();
     } else {
         // connect to the bike
-        let manager = Manager::new().await.unwrap();
-        let adapters = manager.adapters().await?;
-        let bike = bike_type_to_bike(args.bike_type, &adapters, args.max_level)
+        let bike = bike_type_to_bike(args.bike_type, args.max_level)
             .await
             .unwrap();
 
