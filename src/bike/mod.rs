@@ -1,4 +1,4 @@
-pub mod different_bike;
+pub mod debug_bike;
 pub mod iconsole_0028;
 pub mod non_bluetooth_bike;
 use std::sync::mpsc::Receiver;
@@ -10,7 +10,7 @@ use btleplug::{
 };
 use futures::StreamExt as _;
 
-use different_bike::DifferentBike;
+use debug_bike::DebugBike;
 use iconsole_0028::Iconsole0028Bike;
 use non_bluetooth_bike::NonBluetoothBike;
 
@@ -35,7 +35,7 @@ pub async fn bike_type_to_bike(
             Iconsole0028Bike::new(max_level, shutdown_rx).await.unwrap(),
         )),
         "debug-bike" => Some(Box::new(
-            DifferentBike::new(max_level, shutdown_rx).await.unwrap(),
+            DebugBike::new(max_level, shutdown_rx).await.unwrap(),
         )),
         "non-bluetooth-bike" => Some(Box::new(
             NonBluetoothBike::new(max_level, shutdown_rx).await.unwrap(),

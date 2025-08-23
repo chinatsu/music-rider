@@ -11,7 +11,7 @@ use uuid::Uuid;
 use super::{Bike, FTMSData};
 
 #[derive(Debug, Clone)]
-pub struct DifferentBike {
+pub struct DebugBike {
     peripheral: Peripheral,
     pub name: String,
     idk: Vec<Characteristic>,
@@ -19,14 +19,14 @@ pub struct DifferentBike {
 }
 
 #[async_trait]
-impl Bike for DifferentBike {
+impl Bike for DebugBike {
     async fn new(max_level: i16, shutdown_rx: &mut Receiver<()>) -> anyhow::Result<Self> {
         let manager = Manager::new().await.unwrap();
         let adapters = manager.adapters().await?;
         let meta = super::get_peripheral(&adapters, shutdown_rx)
             .await?
             .unwrap();
-        let mut bike = DifferentBike {
+        let mut bike = DebugBike {
             peripheral: meta.0,
             name: meta.1,
             idk: Vec::new(),
@@ -80,7 +80,7 @@ impl Bike for DifferentBike {
     }
 }
 
-impl DifferentBike {
+impl DebugBike {
     async fn cleanup(&self) -> anyhow::Result<()> {
         for characteristic in &self.idk {
             self.peripheral.unsubscribe(characteristic).await?;
