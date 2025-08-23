@@ -21,21 +21,7 @@ cargo install --path .
 
 bike path/to/album
 bike path/to/album/song.flac
-```
-
-```
-audiosurf irl or something
-
-Usage: bike [OPTIONS] <PATH>
-
-Arguments:
-  <PATH>  Path to the directory containing FLAC files
-
-Options:
-  -s, --scale <SCALE>  Scale factor for the maximum level (limits the maximum level) [default: 1]
-  -n, --no-discovery   Disable bike discovery (enables playback without a bike, emits level changes to stdout)
-  -h, --help           Print help
-  -V, --version        Print version
+bike -h # for various options
 ```
 
 ## known problems
@@ -48,6 +34,16 @@ Options:
     - tbh, just restart the program until it does
     - i suspect one of the cases for me is that my bluetooth dongle sets up two devices.
       when the "wrong" device discovers the bike, the other one doesn't see it or something
+- resistance doesn't really follow the music well...
+    - `--no-read` helps a lot, since the read function blocks the thread for a while
+    - the analyzer only takes the sample it can read, so maybe if the thread gets blocked, the samples get out of sync
+        - so maybe the analyzer should live in the music player after all
+        - this way we could maybe have a bidirectional channel where the main thread can ask the music thread "hey, what's the average amplitude these days?"
+        - then the music thread can send back an answer that should fall better in line with what the bike should be set to, without it being too time sensitive
+    - it seems that blasting the bike with write packets makes it a little angry though
+        - the bluetooth connection was dropped once out of the blue, and the bike refused reconnection for a while after
+- support for more bikes..
+    - i'm too dumb for `dyn` stuff man
 
 also note, the analysis stuff isn't perfect yet.
 i'm experimenting with various techniques, and i gotta kill my legs for a bit to figure out if i like one or the other.

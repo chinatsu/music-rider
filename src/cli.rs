@@ -18,11 +18,42 @@ pub struct Args {
     pub scale: f64,
 
     #[arg(
-        short,
         long,
         default_value_t = false,
         action,
         help = "Disable bike discovery (enables playback without a bike, emits level changes to stdout)"
     )]
     pub no_discovery: bool,
+
+    #[arg(
+        short,
+        long,
+        default_value_t = false,
+        action,
+        help = "Enable debug output"
+    )]
+    pub debug: bool,
+
+    #[arg(
+        short,
+        long,
+        default_value_t = 64,
+        help = "Maximum level to set on the bike"
+    )]
+    pub max_level: i16,
+
+    #[arg(
+        long,
+        default_value_t = false,
+        action,
+        help = "Disable reading data from bike (still writes to it)"
+    )]
+    pub no_read: bool,
+
+    #[arg(
+        long,
+        default_value_t = String::from("0028"),
+        help = "Bike type"
+    )]
+    pub bike_type: String,
 }

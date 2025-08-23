@@ -23,7 +23,7 @@ impl Analyzer {
             // sampling rate
             self.sample_rate,
             // optional frequency limit: e.g. only interested in frequencies 50 <= f <= 150?
-            FrequencyLimit::All,
+            FrequencyLimit::Max(2000.),
             // optional scale
             Some(&divide_by_N_sqrt),
         )?;
