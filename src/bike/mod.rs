@@ -15,7 +15,7 @@ use iconsole_0028::Iconsole0028Bike;
 use non_bluetooth_bike::NonBluetoothBike;
 
 #[async_trait]
-pub trait Bike: Send + Sync {
+pub trait Bike {
     async fn new(max_level: i16, shutdown_rx: &mut Receiver<()>) -> anyhow::Result<Self>
     where
         Self: Sized;

@@ -44,6 +44,7 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.unwrap();
+        println!("\nReceived SIGINT, shutting down~ keep in mind that if the program is currently scanning for bluetooth devices, we'll hang until a bluetooth event is received");
         shutdown_tx.send(()).unwrap();
         shutdown_tx2.send(()).unwrap();
         shutdown_tx3.send(()).unwrap();
