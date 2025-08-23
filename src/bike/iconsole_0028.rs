@@ -1,5 +1,6 @@
 use std::sync::mpsc::Receiver;
 
+use async_trait::async_trait;
 use btleplug::{
     api::{CharPropFlags, Characteristic, Manager as _, Peripheral as _},
     platform::{Manager, Peripheral},
@@ -23,6 +24,7 @@ pub struct Iconsole0028Bike {
     max_level: i16,
 }
 
+#[async_trait]
 impl Bike for Iconsole0028Bike {
     async fn new(max_level: i16, shutdown_rx: &mut Receiver<()>) -> anyhow::Result<Self> {
         let manager = Manager::new().await.unwrap();

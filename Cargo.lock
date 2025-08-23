@@ -116,6 +116,7 @@ name = "bike"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "btleplug",
  "clap",
  "crossterm",

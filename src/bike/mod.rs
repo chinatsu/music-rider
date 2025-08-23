@@ -3,6 +3,7 @@ pub mod iconsole_0028;
 pub mod non_bluetooth_bike;
 use std::sync::mpsc::Receiver;
 
+use async_trait::async_trait;
 use btleplug::{
     api::{Central as _, CentralEvent, Peripheral as _, ScanFilter},
     platform::{Adapter, Peripheral},
@@ -13,7 +14,8 @@ use different_bike::DifferentBike;
 use iconsole_0028::Iconsole0028Bike;
 use non_bluetooth_bike::NonBluetoothBike;
 
-pub trait Bike {
+#[async_trait]
+pub trait Bike: Send + Sync {
     async fn new(max_level: i16, shutdown_rx: &mut Receiver<()>) -> anyhow::Result<Self>
     where
         Self: Sized;
@@ -23,62 +25,21 @@ pub trait Bike {
     async fn read(&self) -> anyhow::Result<Option<FTMSData>>;
 }
 
-pub enum BikeType {
-    Iconsole0028(Box<Iconsole0028Bike>),
-    DifferentBike(Box<DifferentBike>),
-    NonBluetoothBike(Box<NonBluetoothBike>),
-}
-
-#[allow(dead_code)]
-impl BikeType {
-    pub async fn connect(&self) -> anyhow::Result<bool> {
-        match self {
-            BikeType::Iconsole0028(bike) => bike.connect().await,
-            BikeType::DifferentBike(bike) => bike.connect().await,
-            BikeType::NonBluetoothBike(bike) => bike.connect().await,
-        }
-    }
-
-    pub async fn disconnect(&self) -> anyhow::Result<()> {
-        match self {
-            BikeType::Iconsole0028(bike) => bike.disconnect().await,
-            BikeType::DifferentBike(bike) => bike.disconnect().await,
-            BikeType::NonBluetoothBike(bike) => bike.disconnect().await,
-        }
-    }
-
-    pub async fn set_level(&self, level: i16) -> anyhow::Result<()> {
-        match self {
-            BikeType::Iconsole0028(bike) => bike.set_level(level).await,
-            BikeType::DifferentBike(bike) => bike.set_level(level).await,
-            BikeType::NonBluetoothBike(bike) => bike.set_level(level).await,
-        }
-    }
-
-    pub async fn read(&self) -> anyhow::Result<Option<FTMSData>> {
-        match self {
-            BikeType::Iconsole0028(bike) => bike.read().await,
-            BikeType::DifferentBike(bike) => bike.read().await,
-            BikeType::NonBluetoothBike(bike) => bike.read().await,
-        }
-    }
-}
-
 pub async fn bike_type_to_bike(
     name: String,
     max_level: i16,
     shutdown_rx: &mut Receiver<()>,
-) -> Option<BikeType> {
+) -> Option<Box<dyn Bike>> {
     match name.as_str() {
-        "0028" => Some(BikeType::Iconsole0028(Box::new(
+        "0028" => Some(Box::new(
             Iconsole0028Bike::new(max_level, shutdown_rx).await.unwrap(),
-        ))),
-        "debug-bike" => Some(BikeType::DifferentBike(Box::new(
+        )),
+        "debug-bike" => Some(Box::new(
             DifferentBike::new(max_level, shutdown_rx).await.unwrap(),
-        ))),
-        "non-bluetooth-bike" => Some(BikeType::NonBluetoothBike(Box::new(
+        )),
+        "non-bluetooth-bike" => Some(Box::new(
             NonBluetoothBike::new(max_level, shutdown_rx).await.unwrap(),
-        ))),
+        )),
         _ => {
             eprintln!("Unknown bike type: {name}");
             None
