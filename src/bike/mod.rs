@@ -1,6 +1,8 @@
 pub mod different_bike;
 pub mod iconsole_0028;
 pub mod non_bluetooth_bike;
+use std::sync::mpsc::Receiver;
+
 use btleplug::{
     api::{Central as _, CentralEvent, Peripheral as _, ScanFilter},
     platform::{Adapter, Peripheral},
@@ -12,7 +14,7 @@ use iconsole_0028::Iconsole0028Bike;
 use non_bluetooth_bike::NonBluetoothBike;
 
 pub trait Bike {
-    async fn new(max_level: i16) -> anyhow::Result<Self>
+    async fn new(max_level: i16, shutdown_rx: &mut Receiver<()>) -> anyhow::Result<Self>
     where
         Self: Sized;
     async fn connect(&self) -> anyhow::Result<bool>;
@@ -62,16 +64,20 @@ impl BikeType {
     }
 }
 
-pub async fn bike_type_to_bike(name: String, max_level: i16) -> Option<BikeType> {
+pub async fn bike_type_to_bike(
+    name: String,
+    max_level: i16,
+    shutdown_rx: &mut Receiver<()>,
+) -> Option<BikeType> {
     match name.as_str() {
         "0028" => Some(BikeType::Iconsole0028(Box::new(
-            Iconsole0028Bike::new(max_level).await.unwrap(),
+            Iconsole0028Bike::new(max_level, shutdown_rx).await.unwrap(),
         ))),
         "debug-bike" => Some(BikeType::DifferentBike(Box::new(
-            DifferentBike::new(max_level).await.unwrap(),
+            DifferentBike::new(max_level, shutdown_rx).await.unwrap(),
         ))),
         "non-bluetooth-bike" => Some(BikeType::NonBluetoothBike(Box::new(
-            NonBluetoothBike::new(max_level).await.unwrap(),
+            NonBluetoothBike::new(max_level, shutdown_rx).await.unwrap(),
         ))),
         _ => {
             eprintln!("Unknown bike type: {name}");
@@ -108,7 +114,10 @@ pub enum StopCode {
     // Pause = 0x02,
 }
 
-pub async fn get_peripheral(adapters: &[Adapter]) -> anyhow::Result<(Peripheral, String)> {
+pub async fn get_peripheral(
+    adapters: &[Adapter],
+    shutdown_rx: &mut Receiver<()>,
+) -> anyhow::Result<Option<(Peripheral, String)>> {
     let mut events = Vec::new();
     let mut peripheral_meta: Option<(Peripheral, String)> = None;
 
@@ -122,6 +131,9 @@ pub async fn get_peripheral(adapters: &[Adapter]) -> anyhow::Result<(Peripheral,
         .next()
         .await
     {
+        if shutdown_rx.try_recv().is_ok() {
+            break;
+        }
         if let CentralEvent::DeviceDiscovered(id) = event {
             let central = adapters.get(1).unwrap();
             let peripheral = central.peripheral(&id).await?;
@@ -137,5 +149,5 @@ pub async fn get_peripheral(adapters: &[Adapter]) -> anyhow::Result<(Peripheral,
         adapter.stop_scan().await?;
     }
 
-    Ok(peripheral_meta.unwrap())
+    Ok(peripheral_meta)
 }

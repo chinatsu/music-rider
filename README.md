@@ -26,10 +26,19 @@ bike -h # for various options
 
 ## known problems
 
-- ctrl+c/`SIGINT` does not cleanly disconnect the bike nor flush the audio stack nicely
+- ~~ctrl+c/`SIGINT` does not cleanly disconnect the bike nor flush the audio stack nicely~~
     - you can always reconnect the bike by rerunning the program, and load a short audio track in.
       once the track has finished playing, a clean shutdown/disconnect is performed
-    - i know of ctrlc crates and all, but i just haven't yet figured out how to send those signals here and there
+    - ~~i know of ctrlc crates and all, but i just haven't yet figured out how to send those signals here and there~~
+        - **update**: i've started sending shutdown signals to various parts of the program.
+        - this change makes the audio player flush its output, and the bike to disconnect
+        - but....
+- ctrl+c/`SIGINT` while the program is scanning for devices causes a panic
+    - this isn't as dangerous as it seems;
+        - the bluetooth stack stops scanning before the panic,
+        - no audio stuff has started (nothing to flush), 
+        - nor is there any connection to the device (nothing to disconnect)
+    - this makes the program shut down slower though, because it's reliant on a bluetooth event happening before the shutdown signal is noticed
 - the bluetooth connection doesn't always find the bike
     - tbh, just restart the program until it does
     - i suspect one of the cases for me is that my bluetooth dongle sets up two devices.

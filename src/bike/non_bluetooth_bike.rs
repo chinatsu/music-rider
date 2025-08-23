@@ -1,3 +1,5 @@
+use std::sync::mpsc::Receiver;
+
 use super::{Bike, FTMSData};
 
 #[derive(Debug, Clone)]
@@ -7,7 +9,7 @@ pub struct NonBluetoothBike {
 }
 
 impl Bike for NonBluetoothBike {
-    async fn new(max_level: i16) -> anyhow::Result<Self> {
+    async fn new(max_level: i16, _: &mut Receiver<()>) -> anyhow::Result<Self> {
         Ok(NonBluetoothBike {
             name: "some hypothetical non-bluetooth bike".to_string(),
             max_level,

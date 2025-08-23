@@ -1,3 +1,5 @@
+use std::sync::mpsc::Receiver;
+
 use btleplug::{
     api::{CharPropFlags, Characteristic, Manager as _, Peripheral as _},
     platform::{Manager, Peripheral},
@@ -22,10 +24,12 @@ pub struct Iconsole0028Bike {
 }
 
 impl Bike for Iconsole0028Bike {
-    async fn new(max_level: i16) -> anyhow::Result<Self> {
+    async fn new(max_level: i16, shutdown_rx: &mut Receiver<()>) -> anyhow::Result<Self> {
         let manager = Manager::new().await.unwrap();
         let adapters = manager.adapters().await?;
-        let meta = super::get_peripheral(&adapters).await?;
+        let meta = super::get_peripheral(&adapters, shutdown_rx)
+            .await?
+            .unwrap();
         let mut bike = Iconsole0028Bike {
             peripheral: meta.0,
             name: meta.1,

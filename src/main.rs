@@ -23,6 +23,10 @@ async fn main() -> anyhow::Result<()> {
     // the music player decides when to stop
     let (stop_tx, stop_rx) = channel();
 
+    let (shutdown_tx, mut shutdown_rx) = channel();
+    let (shutdown_tx2, shutdown_rx2) = channel();
+    let (shutdown_tx3, mut shutdown_rx3) = channel();
+
     // let's figure out the sample rate of the audio files in the specified directory
     let flac = audio::get_flac_from_dir(args.path.clone());
     if flac.is_none() {
@@ -38,13 +42,20 @@ async fn main() -> anyhow::Result<()> {
         .sample_rate
         .unwrap_or(44100);
 
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.unwrap();
+        shutdown_tx.send(()).unwrap();
+        shutdown_tx2.send(()).unwrap();
+        shutdown_tx3.send(()).unwrap();
+    });
+
     // spawn a task to play the audio files and send samples to the main thread
     tokio::spawn(async move {
         let mut audio = audio::Audio::new(args.path);
         let play = play_rx.recv().is_ok();
         for _ in 0..audio.album_length {
             if play {
-                audio.play_track(tx.clone()).unwrap();
+                audio.play_track(tx.clone(), &mut shutdown_rx).unwrap();
                 if audio.next_track().is_none() {
                     println!("No more tracks to play.");
                     stop_tx.send(()).unwrap();
@@ -61,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
 
     // try to figure out what gets sent from the bike
     if args.debug && !args.no_discovery {
-        let bike = bike_type_to_bike(args.bike_type, args.max_level)
+        let bike = bike_type_to_bike(args.bike_type, args.max_level, &mut shutdown_rx3)
             .await
             .unwrap();
         loop {
@@ -100,7 +111,7 @@ async fn main() -> anyhow::Result<()> {
         stdout.execute(cursor::Show).unwrap();
     } else {
         // connect to the bike
-        let bike = bike_type_to_bike(args.bike_type, args.max_level)
+        let bike = bike_type_to_bike(args.bike_type, args.max_level, &mut shutdown_rx3)
             .await
             .unwrap();
 
@@ -109,6 +120,9 @@ async fn main() -> anyhow::Result<()> {
 
         // receive samples, analyze them, and set the bike level accordingly (and also print the levels lol)
         while let Ok(value) = rx.recv() {
+            if shutdown_rx2.try_recv().is_ok() {
+                break;
+            }
             if stop_rx.try_recv().is_ok() {
                 break; // stop playback if the stop channel is closed
             }

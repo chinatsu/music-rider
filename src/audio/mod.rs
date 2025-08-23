@@ -1,4 +1,7 @@
-use std::{path::PathBuf, sync::mpsc::Sender};
+use std::{
+    path::PathBuf,
+    sync::mpsc::{Receiver, Sender},
+};
 use symphonia::core::{
     audio::SampleBuffer, formats::FormatOptions, meta::MetadataOptions, probe::ProbeResult,
 };
@@ -67,7 +70,11 @@ impl Audio {
         }
     }
 
-    pub fn play_track(&mut self, sender: Sender<Vec<f32>>) -> anyhow::Result<usize> {
+    pub fn play_track(
+        &mut self,
+        sender: Sender<Vec<f32>>,
+        shutdown_signal: &mut Receiver<()>,
+    ) -> anyhow::Result<usize> {
         let probed = get_probe(&self.tracks[self.current_track]);
         let mut format = probed.format;
         let track = match format
@@ -86,6 +93,10 @@ impl Audio {
         let track_id = track.id;
 
         loop {
+            if shutdown_signal.try_recv().is_ok() {
+                self.current_track = self.album_length;
+                return Ok(0);
+            }
             let packet = match format.next_packet() {
                 Ok(packet) => packet,
                 Err(symphonia::core::errors::Error::ResetRequired) => {
