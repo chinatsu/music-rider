@@ -3,7 +3,7 @@ use crossterm::{ExecutableCommand, QueueableCommand, cursor, terminal};
 use std::io::{Stdout, Write, stdout};
 use std::sync::mpsc::channel;
 
-mod analyze;
+mod analysis;
 mod audio;
 mod bt;
 mod cli;
@@ -95,7 +95,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // create an analyzer to receive the audio samples
-    let analyzer = analyze::get_analyzer(&args.analyzer, sample_rate, args.scale);
+    let analyzer = analysis::get_analyzer(&args.analyzer, sample_rate, args.scale);
     if analyzer.is_none() {
         eprintln!("Unknown analyzer: {}", args.analyzer);
         return Ok(());

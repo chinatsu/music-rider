@@ -112,25 +112,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bike"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "btleplug",
- "clap",
- "crossterm",
- "futures",
- "libpulse-binding",
- "libpulse-simple-binding",
- "log",
- "spectrum-analyzer",
- "symphonia",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -776,6 +757,25 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "music-rider"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "btleplug",
+ "clap",
+ "crossterm",
+ "futures",
+ "libpulse-binding",
+ "libpulse-simple-binding",
+ "log",
+ "spectrum-analyzer",
+ "symphonia",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]

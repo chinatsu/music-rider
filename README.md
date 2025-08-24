@@ -19,16 +19,20 @@ it is possible to configure the level scale with the `-s` flag, values below 1.0
 ```sh
 cargo install --path .
 
-bike path/to/album
-bike path/to/album/song.flac
-bike -h # for various options
+music-rider path/to/album
+music-rider path/to/album/song.flac
+music-rider -h # for various options
+
+# or just..
+
+cargo run -- path/to/album
 ```
 
 ## blog
 
-## 2025-08-24
+### 2025-08-24
 
-the analyze section of the program has been made into a trait, so that eventually we can have multiple possible analyzers!
+the analysis section of the program has been made into a trait, so that eventually we can have multiple possible analyzers!
 
 i'm leaning towards a not-so-realtime calculation of amplitude, though.
 as in, i'd like to compute the whole ride before the song starts playing.
@@ -36,7 +40,7 @@ then, at more regular intervals on the bike side, we can query the map and figur
 
 this should allow for a bit more adjustments as well, once we know the full waveform, we might wanna smooth out parts, delay it a little (e.g. set the level of what's _about_ to play, instead of what is played/just played). the bike takes a tiny bit of time to update its resistance, so decoupling playback and bike stuff even further is probably good.
 
-## 2025-08-23
+### 2025-08-23
 
 scaffolding for implementing other types of exercise equipment is in!
 it's not beautiful, but hopefully it's an okay starting point for whoever wants to add their rowing machine or whatever.
