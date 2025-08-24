@@ -3,12 +3,13 @@ use crossterm::{ExecutableCommand, QueueableCommand, cursor, terminal};
 use std::io::{Stdout, Write, stdout};
 use std::sync::mpsc::channel;
 
+mod analyze;
 mod audio;
-mod bike;
+mod bt;
 mod cli;
+mod exercise;
 
-use crate::audio::analyze::Analyzer;
-use crate::bike::bike_type_to_bike;
+use exercise::equipment_type_to_equipment;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -44,7 +45,9 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.unwrap();
-        println!("\nReceived SIGINT, shutting down~ keep in mind that if the program is currently scanning for bluetooth devices, we'll hang until a bluetooth event is received");
+        println!(
+            "\nReceived SIGINT, shutting down~ keep in mind that if the program is currently scanning for bluetooth devices, we'll hang until a bluetooth event is received"
+        );
         shutdown_tx.send(()).unwrap();
         shutdown_tx2.send(()).unwrap();
         shutdown_tx3.send(()).unwrap();
@@ -73,11 +76,15 @@ async fn main() -> anyhow::Result<()> {
 
     // try to figure out what gets sent from the bike
     if args.debug && !args.no_discovery {
-        let bike = bike_type_to_bike(args.bike_type, args.max_level, &mut shutdown_rx3)
-            .await
-            .unwrap();
+        let equipment = equipment_type_to_equipment(
+            args.exercise_equipment_type,
+            args.max_level,
+            &mut shutdown_rx3,
+        )
+        .await
+        .unwrap();
         loop {
-            if let Some(data) = bike.read().await? {
+            if let Some(data) = equipment.read().await? {
                 let state = format!(
                     "{:03} rpm :: {:03} W :: {:.2} km/h",
                     data.cadence, data.power, data.speed
@@ -88,7 +95,12 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // create an analyzer to receive the audio samples
-    let analyzer = Analyzer::new(sample_rate, args.scale);
+    let analyzer = analyze::get_analyzer(&args.analyzer, sample_rate, args.scale);
+    if analyzer.is_none() {
+        eprintln!("Unknown analyzer: {}", args.analyzer);
+        return Ok(());
+    }
+    let analyzer = analyzer.unwrap();
 
     // prev_level helps keep track, and reduce the number of calls being sent to the bike
     let mut prev_level = 0;
@@ -112,14 +124,18 @@ async fn main() -> anyhow::Result<()> {
         stdout.execute(cursor::Show).unwrap();
     } else {
         // connect to the bike
-        let bike = bike_type_to_bike(args.bike_type, args.max_level, &mut shutdown_rx3)
-            .await
-            .unwrap();
+        let equipment = equipment_type_to_equipment(
+            args.exercise_equipment_type,
+            args.max_level,
+            &mut shutdown_rx3,
+        )
+        .await
+        .unwrap();
 
         // enable playback
         play_tx.send(true).unwrap();
 
-        // receive samples, analyze them, and set the bike level accordingly (and also print the levels lol)
+        // receive samples, analyze them, and set the equipment level accordingly (and also print the levels lol)
         while let Ok(value) = rx.recv() {
             if shutdown_rx2.try_recv().is_ok() {
                 break;
@@ -131,7 +147,7 @@ async fn main() -> anyhow::Result<()> {
             let level = freq_score_to_level(args.max_level, score);
             if ![level, level + 1, level - 1].contains(&prev_level) {
                 prev_level = level;
-                bike.set_level(level).await?;
+                equipment.set_level(level).await?;
             }
             let level_state = format!(
                 "level {:<width$}",
@@ -140,24 +156,19 @@ async fn main() -> anyhow::Result<()> {
             );
             if args.no_read {
                 print_state(&mut stdout, level_state);
-            } else if let Some(data) = bike.read().await? {
+            } else if let Some(data) = equipment.read().await? {
                 let state = format!(
                     "{:03} rpm :: {:03} W :: {:.2} km/h :: {:03} s",
                     data.cadence, data.power, data.speed, data.time
                 );
                 print_state(&mut stdout, format!("{state} :: {level_state}"));
             }
-
-            // this is where we'd print stats like speed, cadence, wattage, etc.
-            // but i haven't yet figured out which characteristics output this data
-            // FTMS_STATS_UUID in bike.rs is what's used, and there are some other candidates in iconsole-characteristics.json
-            // bike.print_stats().await?;
         }
         stdout.execute(cursor::Show).unwrap();
 
-        // cleanly disconnect the bike once the songs are done playing and `rx` is closed
-        // todo: disconnect the bike, and flush the audio output on SIGINT or SIGTERM
-        bike.disconnect().await?;
+        // cleanly disconnect the equipment once the songs are done playing and `rx` is closed
+        // todo: disconnect the equipment, and flush the audio output on SIGINT or SIGTERM
+        equipment.disconnect().await?;
     }
 
     Ok(())

@@ -2,13 +2,14 @@ use std::sync::mpsc::Receiver;
 
 use async_trait::async_trait;
 use btleplug::{
-    api::{CharPropFlags, Characteristic, Manager as _, Peripheral as _},
-    platform::{Manager, Peripheral},
+    api::{CharPropFlags, Characteristic, Peripheral as _},
+    platform::Peripheral,
 };
 use futures::StreamExt;
 use uuid::Uuid;
 
-use super::{Bike, FTMSData};
+use super::{Equipment, EquipmentType, FTMSData};
+use crate::bt::get_peripheral;
 
 #[derive(Debug, Clone)]
 pub struct DebugBike {
@@ -19,11 +20,9 @@ pub struct DebugBike {
 }
 
 #[async_trait]
-impl Bike for DebugBike {
+impl Equipment for DebugBike {
     async fn new(max_level: i16, shutdown_rx: &mut Receiver<()>) -> anyhow::Result<Self> {
-        let manager = Manager::new().await.unwrap();
-        let adapters = manager.adapters().await?;
-        let meta = super::get_peripheral(&adapters, shutdown_rx)
+        let meta = get_peripheral(EquipmentType::DebugBike, shutdown_rx)
             .await?
             .unwrap();
         let mut bike = DebugBike {
@@ -39,7 +38,7 @@ impl Bike for DebugBike {
         Ok(bike)
     }
 
-    async fn connect(&self) -> anyhow::Result<bool> {
+    async fn connect(&mut self) -> anyhow::Result<bool> {
         let is_connected = self.peripheral.is_connected().await?;
         if !is_connected {
             self.peripheral.connect().await?;

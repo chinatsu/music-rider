@@ -2,13 +2,14 @@ use std::sync::mpsc::Receiver;
 
 use async_trait::async_trait;
 use btleplug::{
-    api::{CharPropFlags, Characteristic, Manager as _, Peripheral as _},
-    platform::{Manager, Peripheral},
+    api::{CharPropFlags, Characteristic, Peripheral as _},
+    platform::Peripheral,
 };
 use futures::StreamExt;
 use uuid::Uuid;
 
-use super::{Bike, FTMSControlOpCode, FTMSData, StopCode};
+use super::{Equipment, EquipmentType, FTMSControlOpCode, FTMSData, StopCode};
+use crate::bt::get_peripheral;
 
 static FTMS_SERVICE_UUID: &str = "00001826"; // FTMS service
 static FTMS_STATS_UUID: &str = "00002ad2"; // FTMS read?
@@ -17,43 +18,37 @@ static FTMS_STATS_UUID: &str = "00002ad2"; // FTMS read?
 pub struct Iconsole0028Bike {
     peripheral: Peripheral,
     pub name: String,
-    notify: Option<Characteristic>,
     control: Option<Characteristic>,
     stats: Option<Characteristic>,
-    idk: Vec<Characteristic>,
     max_level: i16,
 }
 
 #[async_trait]
-impl Bike for Iconsole0028Bike {
+impl Equipment for Iconsole0028Bike {
     async fn new(max_level: i16, shutdown_rx: &mut Receiver<()>) -> anyhow::Result<Self> {
-        let manager = Manager::new().await.unwrap();
-        let adapters = manager.adapters().await?;
-        let meta = super::get_peripheral(&adapters, shutdown_rx)
+        let meta = get_peripheral(EquipmentType::Iconsole0028Bike, shutdown_rx)
             .await?
             .unwrap();
-        let mut bike = Iconsole0028Bike {
+        let bike = Iconsole0028Bike {
             peripheral: meta.0,
             name: meta.1,
-            notify: None,
             control: None,
             stats: None,
-            idk: Vec::new(),
             max_level,
         };
-        bike.connect().await?;
-        bike.set_characteristics().await?;
-        bike.subscribe().await?;
-        bike.request_control().await?;
-        println!("Found and connected to bike: {}", bike.name);
         Ok(bike)
     }
 
-    async fn connect(&self) -> anyhow::Result<bool> {
+    async fn connect(&mut self) -> anyhow::Result<bool> {
         let is_connected = self.peripheral.is_connected().await?;
         if !is_connected {
             self.peripheral.connect().await?;
         }
+        self.connect().await?;
+        self.set_characteristics().await?;
+        self.subscribe().await?;
+        self.request_control().await?;
+        println!("Found and connected to bike: {}", self.name);
         Ok(is_connected)
     }
 
@@ -101,8 +96,8 @@ impl Bike for Iconsole0028Bike {
 
 impl Iconsole0028Bike {
     async fn cleanup(&self) -> anyhow::Result<()> {
-        if let Some(notify) = &self.notify {
-            self.peripheral.unsubscribe(notify).await?;
+        if let Some(stats) = &self.stats {
+            self.peripheral.unsubscribe(stats).await?;
         }
         self.write(&[FTMSControlOpCode::Stop as u8, StopCode::Stop as u8])
             .await
@@ -115,15 +110,6 @@ impl Iconsole0028Bike {
                 .service_uuid
                 .to_string()
                 .starts_with(FTMS_SERVICE_UUID)
-                && characteristic.properties.contains(CharPropFlags::NOTIFY)
-                && characteristic.properties.contains(CharPropFlags::READ)
-            {
-                self.notify = Some(characteristic.clone());
-            }
-            if characteristic
-                .service_uuid
-                .to_string()
-                .starts_with(FTMS_SERVICE_UUID)
                 && characteristic.properties.contains(CharPropFlags::WRITE)
                 && characteristic.properties.contains(CharPropFlags::INDICATE)
             {
@@ -132,19 +118,11 @@ impl Iconsole0028Bike {
             if characteristic.uuid.to_string().starts_with(FTMS_STATS_UUID) {
                 self.stats = Some(characteristic.clone());
             }
-            if characteristic.properties.contains(CharPropFlags::NOTIFY) {
-                self.idk.push(characteristic.clone());
-            }
         }
         Ok(())
     }
 
     async fn subscribe(&self) -> anyhow::Result<()> {
-        if let Some(notify) = &self.notify {
-            self.peripheral.subscribe(notify).await?;
-        } else {
-            return Err(anyhow::anyhow!("No notify characteristic found"));
-        }
         if let Some(stats) = &self.stats {
             self.peripheral.subscribe(stats).await?;
         } else {

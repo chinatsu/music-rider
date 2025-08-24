@@ -6,8 +6,6 @@ use symphonia::core::{
     audio::SampleBuffer, formats::FormatOptions, meta::MetadataOptions, probe::ProbeResult,
 };
 
-pub mod analyze;
-
 mod output;
 use output::AudioOutput;
 

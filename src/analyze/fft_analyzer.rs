@@ -1,19 +1,20 @@
 use std::ops::Div;
 
+use super::Analyze;
 use spectrum_analyzer::scaling::divide_by_N_sqrt;
 use spectrum_analyzer::{FrequencyLimit, samples_fft_to_spectrum};
 
-pub struct Analyzer {
+pub struct FftAnalyzer {
     sample_rate: u32,
     scale: f64,
 }
 
-impl Analyzer {
-    pub fn new(sample_rate: u32, scale: f64) -> Self {
-        Analyzer { sample_rate, scale }
+impl Analyze for FftAnalyzer {
+    fn new(sample_rate: u32, scale: f64) -> Self {
+        FftAnalyzer { sample_rate, scale }
     }
 
-    pub fn freq_score(&self, samplebuffer: Vec<f32>) -> anyhow::Result<f64> {
+    fn freq_score(&self, samplebuffer: Vec<f32>) -> anyhow::Result<f64> {
         if !samplebuffer.len().is_power_of_two() {
             return Ok(0.);
         }

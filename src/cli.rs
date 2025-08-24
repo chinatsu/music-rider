@@ -18,10 +18,18 @@ pub struct Args {
     pub scale: f64,
 
     #[arg(
+        short,
+        long,
+        default_value_t = String::from("fft"),
+        help = "sound analyzer type"
+    )]
+    pub analyzer: String,
+
+    #[arg(
         long,
         default_value_t = false,
         action,
-        help = "Disable bike discovery (enables playback without a bike, emits level changes to stdout)"
+        help = "Disable exercise equipment discovery (enables playback without an exercise equipment, emits level changes to stdout)"
     )]
     pub no_discovery: bool,
 
@@ -38,7 +46,7 @@ pub struct Args {
         short,
         long,
         default_value_t = 64,
-        help = "Maximum level to set on the bike"
+        help = "Maximum level to set on the exercise equipment"
     )]
     pub max_level: i16,
 
@@ -46,14 +54,15 @@ pub struct Args {
         long,
         default_value_t = false,
         action,
-        help = "Disable reading data from bike (still writes to it)"
+        help = "Disable reading data from exercise equipment (still writes to it)"
     )]
     pub no_read: bool,
 
     #[arg(
+        short,
         long,
-        default_value_t = String::from("0028"),
-        help = "Bike type"
+        default_value_t = String::from("28"),
+        help = "exercise equipment type"
     )]
-    pub bike_type: String,
+    pub exercise_equipment_type: String,
 }
