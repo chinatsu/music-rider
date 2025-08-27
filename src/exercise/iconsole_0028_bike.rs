@@ -44,12 +44,11 @@ impl Equipment for Iconsole0028Bike {
         if !is_connected {
             self.peripheral.connect().await?;
         }
-        self.connect().await?;
         self.set_characteristics().await?;
         self.subscribe().await?;
         self.request_control().await?;
         println!("Found and connected to bike: {}", self.name);
-        Ok(is_connected)
+        Ok(self.peripheral.is_connected().await?)
     }
 
     async fn disconnect(&self) -> anyhow::Result<()> {

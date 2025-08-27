@@ -3,10 +3,11 @@ use std::{
     sync::mpsc::{Receiver, Sender},
 };
 use symphonia::core::{
-    audio::SampleBuffer, formats::FormatOptions, meta::MetadataOptions, probe::ProbeResult,
+    formats::FormatOptions, meta::MetadataOptions, probe::ProbeResult,
 };
 
 mod output;
+mod scanner;
 use output::AudioOutput;
 
 pub struct Audio {
@@ -15,16 +16,20 @@ pub struct Audio {
     current_track: usize,
     tracks: Vec<PathBuf>,
     audio_output: Option<Box<dyn AudioOutput>>,
+    scale: f64,
+    offset: usize,
 }
 
 impl Audio {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf, scale: f64, offset: usize) -> Self {
         let mut audio = Audio {
             path: path.clone(),
             album_length: 0,
             current_track: 0,
             tracks: Vec::new(),
             audio_output: None,
+            scale,
+            offset,
         };
         audio.tracks = audio.files();
         audio.album_length = audio.tracks.len();
@@ -70,10 +75,12 @@ impl Audio {
 
     pub fn play_track(
         &mut self,
-        sender: Sender<Vec<f32>>,
+        sender: Sender<f64>,
         shutdown_signal: &mut Receiver<()>,
     ) -> anyhow::Result<usize> {
         let probed = get_probe(&self.tracks[self.current_track]);
+        let what = scanner::scan(&self.tracks[self.current_track], self.scale)?;
+        let what_size = what.iter().len();
         let mut format = probed.format;
         let track = match format
             .tracks()
@@ -89,7 +96,7 @@ impl Audio {
             .make(&track.codec_params, &dec_opts)
             .expect("unsupported codec");
         let track_id = track.id;
-
+        let mut idx = 0;
         loop {
             if shutdown_signal.try_recv().is_ok() {
                 self.current_track = self.album_length;
@@ -131,10 +138,9 @@ impl Audio {
                         audio_output.write(decoded.clone()).unwrap();
                     }
 
-                    let mut sample: SampleBuffer<f32> =
-                        SampleBuffer::new(decoded.capacity() as u64, *decoded.spec());
-                    sample.copy_interleaved_ref(decoded.clone());
-                    let _ = sender.send(sample.samples().to_vec());
+                    let index = (idx + self.offset).min(what_size - 1);
+                    let _ = sender.send(*what.get(index).unwrap());
+                    idx += 1;
                 }
                 Err(symphonia::core::errors::Error::IoError(_)) => continue,
                 Err(symphonia::core::errors::Error::DecodeError(_)) => continue,
@@ -157,22 +163,4 @@ pub fn get_probe(path: &PathBuf) -> ProbeResult {
     symphonia::default::get_probe()
         .format(&hint, mss, &fmt_opts, &meta_opts)
         .expect("unsupported format")
-}
-
-pub fn get_flac_from_dir(path: PathBuf) -> Option<PathBuf> {
-    if path.is_file() {
-        return Some(path.clone());
-    }
-    if let Ok(entries) = std::fs::read_dir(&path) {
-        for entry in entries.flatten() {
-            if let Some(ext) = entry.path().extension()
-                && ext == "flac"
-                && let Some(name) = entry.path().file_name()
-                && let Some(name_str) = name.to_str()
-            {
-                return Some(path.join(name_str));
-            }
-        }
-    }
-    None
 }

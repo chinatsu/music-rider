@@ -25,17 +25,12 @@ impl Equipment for DebugBike {
         let meta = get_peripheral(EquipmentType::DebugBike, shutdown_rx)
             .await?
             .unwrap();
-        let mut bike = DebugBike {
+        Ok(DebugBike {
             peripheral: meta.0,
             name: meta.1,
             idk: Vec::new(),
             max_level,
-        };
-        bike.connect().await?;
-        bike.set_characteristics().await?;
-        bike.subscribe().await?;
-        println!("Found and connected to bike: {}", bike.name);
-        Ok(bike)
+        })
     }
 
     async fn connect(&mut self) -> anyhow::Result<bool> {
@@ -43,7 +38,10 @@ impl Equipment for DebugBike {
         if !is_connected {
             self.peripheral.connect().await?;
         }
-        Ok(is_connected)
+        self.set_characteristics().await?;
+        self.subscribe().await?;
+        println!("Found and connected to: {}", self.name);
+        Ok(self.peripheral.is_connected().await?)
     }
 
     async fn disconnect(&self) -> anyhow::Result<()> {

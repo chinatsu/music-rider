@@ -28,21 +28,6 @@ async fn main() -> anyhow::Result<()> {
     let (shutdown_tx2, shutdown_rx2) = channel();
     let (shutdown_tx3, mut shutdown_rx3) = channel();
 
-    // let's figure out the sample rate of the audio files in the specified directory
-    let flac = audio::get_flac_from_dir(args.path.clone());
-    if flac.is_none() {
-        eprintln!("No FLAC files found in the specified directory.");
-        return Ok(());
-    }
-    let probed = audio::get_probe(&flac.unwrap());
-    let sample_rate = probed
-        .format
-        .default_track()
-        .unwrap()
-        .codec_params
-        .sample_rate
-        .unwrap_or(44100);
-
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.unwrap();
         println!(
@@ -55,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
 
     // spawn a task to play the audio files and send samples to the main thread
     tokio::spawn(async move {
-        let mut audio = audio::Audio::new(args.path);
+        let mut audio = audio::Audio::new(args.path, args.scale, args.offset);
         let play = play_rx.recv().is_ok();
         for _ in 0..audio.album_length {
             if play {
@@ -76,13 +61,16 @@ async fn main() -> anyhow::Result<()> {
 
     // try to figure out what gets sent from the bike
     if args.debug && !args.no_discovery {
-        let equipment = equipment_type_to_equipment(
+        let mut equipment = equipment_type_to_equipment(
             args.exercise_equipment_type,
             args.max_level,
             &mut shutdown_rx3,
         )
         .await
         .unwrap();
+        if !equipment.connect().await? {
+            return Ok(());
+        }
         loop {
             if let Some(data) = equipment.read().await? {
                 let state = format!(
@@ -94,14 +82,6 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    // create an analyzer to receive the audio samples
-    let analyzer = analysis::get_analyzer(&args.analyzer, sample_rate, args.scale);
-    if analyzer.is_none() {
-        eprintln!("Unknown analyzer: {}", args.analyzer);
-        return Ok(());
-    }
-    let analyzer = analyzer.unwrap();
-
     // prev_level helps keep track, and reduce the number of calls being sent to the bike
     let mut prev_level = 0;
 
@@ -112,8 +92,7 @@ async fn main() -> anyhow::Result<()> {
 
         // receive samples, analyze them, and print the resulting levels
         while let Ok(value) = rx.recv() {
-            let score = analyzer.freq_score(value)?;
-            let level = freq_score_to_level(args.max_level, score);
+            let level = freq_score_to_level(args.max_level, value);
             let level_state = format!(
                 "level {:<width$}",
                 "#".repeat(level as usize),
@@ -124,13 +103,17 @@ async fn main() -> anyhow::Result<()> {
         stdout.execute(cursor::Show).unwrap();
     } else {
         // connect to the bike
-        let equipment = equipment_type_to_equipment(
+        let mut equipment = equipment_type_to_equipment(
             args.exercise_equipment_type,
             args.max_level,
             &mut shutdown_rx3,
         )
         .await
         .unwrap();
+
+        if !equipment.connect().await? {
+            return Ok(());
+        }
 
         // enable playback
         play_tx.send(true).unwrap();
@@ -143,8 +126,7 @@ async fn main() -> anyhow::Result<()> {
             if stop_rx.try_recv().is_ok() {
                 break; // stop playback if the stop channel is closed
             }
-            let score = analyzer.freq_score(value)?;
-            let level = freq_score_to_level(args.max_level, score);
+            let level = freq_score_to_level(args.max_level, value);
             if ![level, level + 1, level - 1].contains(&prev_level) {
                 prev_level = level;
                 equipment.set_level(level).await?;

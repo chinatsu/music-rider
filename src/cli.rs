@@ -65,4 +65,7 @@ pub struct Args {
         help = "exercise equipment type"
     )]
     pub exercise_equipment_type: String,
+
+    #[arg(short, long, default_value_t = 4, help = "song offset (in samples)")]
+    pub offset: usize,
 }
