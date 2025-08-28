@@ -30,6 +30,17 @@ cargo run -- path/to/album
 
 ## blog
 
+### 2025-08-28
+
+the analyzer now lives in the music player, and works in a different way than before.
+previously, it'd check out samples in real-time, and give its score.
+now, upon loading the file, it goes through the whole song and gives its score for every sample.
+
+then, the playback commences and can pick out the precomputed score for that sample.
+this allows us to offset the pointer that picks out the sample, so that the score is from a future part of the song.
+
+my bike takes a little time to apply the resistance, so with tuning the offset with the `-o` flag we can account for more or less latency.
+
 ### 2025-08-24
 
 the analysis section of the program has been made into a trait, so that eventually we can have multiple possible analyzers!
@@ -67,9 +78,9 @@ previously, my bike would stay lit up until i either unplugged it or ran the pro
     - tbh, just restart the program until it does
     - i suspect one of the cases for me is that my bluetooth dongle sets up two devices.
       when the "wrong" device discovers the bike, the other one doesn't see it or something
-- resistance doesn't really follow the music well...
+- ~~resistance doesn't really follow the music well...~~
     - `--no-read` helps a lot, since the read function blocks the thread for a while
-    - the analyzer only takes the sample it can read, so maybe if the thread gets blocked, the samples get out of sync
+    - ~~the analyzer only takes the sample it can read, so maybe if the thread gets blocked, the samples get out of sync~~
         - so maybe the analyzer should live in the music player after all
         - this way we could maybe have a bidirectional channel where the main thread can ask the music thread "hey, what's the average amplitude these days?"
         - then the music thread can send back an answer that should fall better in line with what the bike should be set to, without it being too time sensitive
