@@ -30,6 +30,10 @@ cargo run -- path/to/album
 
 ## blog
 
+### 2025-08-29
+
+the communication stack for the exercise equipment has been extracted into a separate project: https://crates.io/crates/kondis
+
 ### 2025-08-28
 
 the analyzer now lives in the music player, and works in a different way than before.
