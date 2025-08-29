@@ -2,14 +2,11 @@ use clap::Parser as _;
 use crossterm::{ExecutableCommand, QueueableCommand, cursor, terminal};
 use std::io::{Stdout, Write, stdout};
 use std::sync::mpsc::channel;
+use kondis::equipment_type_to_equipment;
 
 mod analysis;
 mod audio;
-mod bt;
 mod cli;
-mod exercise;
-
-use exercise::equipment_type_to_equipment;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

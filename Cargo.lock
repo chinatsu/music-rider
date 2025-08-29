@@ -619,6 +619,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "kondis"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a9971894e6cf4c019891290b4924660edd35515f3915bee2ecee72f0f5a11e8"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "btleplug",
+ "futures",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -765,17 +779,15 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "btleplug",
  "clap",
  "crossterm",
- "futures",
+ "kondis",
  "libpulse-binding",
  "libpulse-simple-binding",
  "log",
  "spectrum-analyzer",
  "symphonia",
  "tokio",
- "uuid",
 ]
 
 [[package]]
