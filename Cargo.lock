@@ -620,9 +620,9 @@ dependencies = [
 
 [[package]]
 name = "kondis"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a9971894e6cf4c019891290b4924660edd35515f3915bee2ecee72f0f5a11e8"
+checksum = "d311e52aff6472e978a2e40c91d7ad23fb83d29207a45cd29d2a36ea780c7256"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -778,7 +778,6 @@ name = "music-rider"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "clap",
  "crossterm",
  "kondis",

@@ -2,7 +2,7 @@ use clap::Parser as _;
 use crossterm::{ExecutableCommand, QueueableCommand, cursor, terminal};
 use std::io::{Stdout, Write, stdout};
 use std::sync::mpsc::channel;
-use kondis::equipment_type_to_equipment;
+use kondis::{equipment_type_to_equipment, EquipmentType};
 
 mod analysis;
 mod audio;
@@ -52,6 +52,12 @@ async fn main() -> anyhow::Result<()> {
         audio.flush();
     });
 
+    let equipment_type = match args.exercise_equipment_type.as_str() {
+        "28" => EquipmentType::Iconsole0028Bike,
+        "debug" => EquipmentType::DebugBike,
+        _ => EquipmentType::NonBluetoothDevice,
+    };
+
     // "pretty" printing
     let mut stdout = stdout();
     stdout.execute(cursor::Hide).unwrap();
@@ -59,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
     // try to figure out what gets sent from the bike
     if args.debug && !args.no_discovery {
         let mut equipment = equipment_type_to_equipment(
-            args.exercise_equipment_type,
+            equipment_type,
             args.max_level,
             &mut shutdown_rx3,
         )
@@ -101,7 +107,7 @@ async fn main() -> anyhow::Result<()> {
     } else {
         // connect to the bike
         let mut equipment = equipment_type_to_equipment(
-            args.exercise_equipment_type,
+            equipment_type,
             args.max_level,
             &mut shutdown_rx3,
         )
