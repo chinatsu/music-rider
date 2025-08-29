@@ -72,7 +72,7 @@ previously, my bike would stay lit up until i either unplugged it or ran the pro
         - **update**: i've started sending shutdown signals to various parts of the program.
         - this change makes the audio player flush its output, and the bike to disconnect
         - but....
-- ctrl+c/`SIGINT` while the program is scanning for devices causes a panic
+- ~~ctrl+c/`SIGINT` while the program is scanning for devices causes a panic~~
     - this isn't as dangerous as it seems;
         - the bluetooth stack stops scanning before the panic,
         - no audio stuff has started (nothing to flush), 

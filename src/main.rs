@@ -1,8 +1,8 @@
 use clap::Parser as _;
 use crossterm::{ExecutableCommand, QueueableCommand, cursor, terminal};
+use kondis::{EquipmentType, equipment_type_to_equipment};
 use std::io::{Stdout, Write, stdout};
 use std::sync::mpsc::channel;
-use kondis::{equipment_type_to_equipment, EquipmentType};
 
 mod analysis;
 mod audio;
@@ -64,13 +64,13 @@ async fn main() -> anyhow::Result<()> {
 
     // try to figure out what gets sent from the bike
     if args.debug && !args.no_discovery {
-        let mut equipment = equipment_type_to_equipment(
-            equipment_type,
-            args.max_level,
-            &mut shutdown_rx3,
-        )
-        .await
-        .unwrap();
+        let equipment =
+            equipment_type_to_equipment(equipment_type, args.max_level, &mut shutdown_rx3).await;
+
+        if equipment.is_none() {
+            return Ok(());
+        }
+        let mut equipment = equipment.unwrap();
         if !equipment.connect().await? {
             return Ok(());
         }
@@ -106,13 +106,13 @@ async fn main() -> anyhow::Result<()> {
         stdout.execute(cursor::Show).unwrap();
     } else {
         // connect to the bike
-        let mut equipment = equipment_type_to_equipment(
-            equipment_type,
-            args.max_level,
-            &mut shutdown_rx3,
-        )
-        .await
-        .unwrap();
+        let equipment =
+            equipment_type_to_equipment(equipment_type, args.max_level, &mut shutdown_rx3).await;
+
+        if equipment.is_none() {
+            return Ok(());
+        }
+        let mut equipment = equipment.unwrap();
 
         if !equipment.connect().await? {
             return Ok(());

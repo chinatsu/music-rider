@@ -13,5 +13,5 @@ log = "0.4.27"
 spectrum-analyzer = "1.7.0"
 clap = { version = "4.5.45", features = ["derive", "color"] }
 crossterm = "0.29.0"
-kondis = "0.2.0"
+kondis = "0.2.1"
 

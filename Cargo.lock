@@ -620,9 +620,9 @@ dependencies = [
 
 [[package]]
 name = "kondis"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d311e52aff6472e978a2e40c91d7ad23fb83d29207a45cd29d2a36ea780c7256"
+checksum = "675121e4590509da9629eb7691ce0d1250d9f49148421334232d3341313c26f8"
 dependencies = [
  "anyhow",
  "async-trait",
