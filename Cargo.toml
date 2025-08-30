@@ -1,6 +1,6 @@
 [package]
 name = "music-rider"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 
 [dependencies]
@@ -13,5 +13,6 @@ log = "0.4.27"
 spectrum-analyzer = "1.7.0"
 clap = { version = "4.5.45", features = ["derive", "color"] }
 crossterm = "0.29.0"
-kondis = "0.2.1"
+kondis = "0.3.0"
+ebur128 = "0.1.10"
 

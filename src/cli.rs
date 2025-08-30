@@ -20,7 +20,7 @@ pub struct Args {
     #[arg(
         short,
         long,
-        default_value_t = String::from("fft"),
+        default_value_t = String::from("lufs"),
         help = "sound analyzer type"
     )]
     pub analyzer: String,
@@ -45,7 +45,7 @@ pub struct Args {
     #[arg(
         short,
         long,
-        default_value_t = 64,
+        default_value_t = 50,
         help = "Maximum level to set on the exercise equipment"
     )]
     pub max_level: i16,
@@ -66,6 +66,6 @@ pub struct Args {
     )]
     pub exercise_equipment_type: String,
 
-    #[arg(short, long, default_value_t = 4, help = "song offset (in samples)")]
-    pub offset: usize,
+    #[arg(short, long, default_value_t = 20., help = "song offset (in ms)")]
+    pub offset: f32,
 }

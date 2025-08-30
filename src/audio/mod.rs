@@ -17,11 +17,11 @@ pub struct Audio {
     tracks: Vec<PathBuf>,
     audio_output: Option<Box<dyn AudioOutput>>,
     scale: f64,
-    offset: usize,
+    offset: f32,
 }
 
 impl Audio {
-    pub fn new(path: PathBuf, scale: f64, offset: usize) -> Self {
+    pub fn new(path: PathBuf, scale: f64, offset: f32) -> Self {
         let mut audio = Audio {
             path: path.clone(),
             album_length: 0,
@@ -75,11 +75,12 @@ impl Audio {
 
     pub fn play_track(
         &mut self,
-        sender: Sender<f64>,
+        sender: Sender<(Option<u8>, f64)>,
         shutdown_signal: &mut Receiver<()>,
+        analyzer_choice: String,
     ) -> anyhow::Result<usize> {
         let probed = get_probe(&self.tracks[self.current_track]);
-        let what = scanner::scan(&self.tracks[self.current_track], self.scale)?;
+        let what = scanner::scan(&self.tracks[self.current_track], self.scale, analyzer_choice)?;
         let what_size = what.iter().len();
         let mut format = probed.format;
         let track = match format
@@ -137,9 +138,17 @@ impl Audio {
                     if let Some(audio_output) = self.audio_output.as_mut() {
                         audio_output.write(decoded.clone()).unwrap();
                     }
-
-                    let index = (idx + self.offset).min(what_size - 1);
-                    let _ = sender.send(*what.get(index).unwrap());
+                    // magic number: 0.4 = loudness momentary window.
+                    // dividing it by 2 gets us the loudness halfway through the window
+                    // we add this value to the offset which is the number of seconds to offset in addition
+                    // (to account for latency applying this to the bike)
+                    let offset = ((0.4/2.)+self.offset / track.codec_params.sample_rate.unwrap() as f32).round() as usize;
+                    let index = (idx + offset).min(what_size - 1);
+                    let success = sender.send(*what.get(index).unwrap());
+                    if let Err(e) = success {
+                        println!("{e}");
+                        return Ok(0);
+                    }
                     idx += 1;
                 }
                 Err(symphonia::core::errors::Error::IoError(_)) => continue,

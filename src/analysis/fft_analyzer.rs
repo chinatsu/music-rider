@@ -10,11 +10,11 @@ pub struct FftAnalyzer {
 }
 
 impl Analyze for FftAnalyzer {
-    fn new(sample_rate: u32, scale: f64) -> Self {
-        FftAnalyzer { sample_rate, scale }
+    fn new(sample_rate: u32, _channels: u32, scale: f64) -> anyhow::Result<Self> {
+        Ok(FftAnalyzer { sample_rate, scale })
     }
 
-    fn freq_score(&self, samplebuffer: Vec<f32>) -> anyhow::Result<f64> {
+    fn freq_score(&mut self, samplebuffer: Vec<f32>) -> anyhow::Result<f64> {
         if !samplebuffer.len().is_power_of_two() {
             return Ok(0.);
         }

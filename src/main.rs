@@ -1,8 +1,10 @@
 use clap::Parser as _;
+use crossterm::style::{Color, Stylize};
 use crossterm::{ExecutableCommand, QueueableCommand, cursor, terminal};
 use kondis::{EquipmentType, equipment_type_to_equipment};
 use std::io::{Stdout, Write, stdout};
 use std::sync::mpsc::channel;
+use tokio::time::Instant;
 
 mod analysis;
 mod audio;
@@ -41,7 +43,9 @@ async fn main() -> anyhow::Result<()> {
         let play = play_rx.recv().is_ok();
         for _ in 0..audio.album_length {
             if play {
-                audio.play_track(tx.clone(), &mut shutdown_rx).unwrap();
+                audio
+                    .play_track(tx.clone(), &mut shutdown_rx, args.analyzer.clone())
+                    .unwrap();
                 if audio.next_track().is_none() {
                     println!("No more tracks to play.");
                     stop_tx.send(()).unwrap();
@@ -80,13 +84,10 @@ async fn main() -> anyhow::Result<()> {
                     "{:03} rpm :: {:03} W :: {:.2} km/h",
                     data.cadence, data.power, data.speed
                 );
-                print_state(&mut stdout, state);
+                print_state(&mut stdout, state, 0.);
             }
         }
     }
-
-    // prev_level helps keep track, and reduce the number of calls being sent to the bike
-    let mut prev_level = 0;
 
     // no discovery means we just print the levels to stdout
     if args.no_discovery {
@@ -94,14 +95,14 @@ async fn main() -> anyhow::Result<()> {
         play_tx.send(true).unwrap();
 
         // receive samples, analyze them, and print the resulting levels
-        while let Ok(value) = rx.recv() {
+        while let Ok((_bpm, value)) = rx.recv() {
             let level = freq_score_to_level(args.max_level, value);
             let level_state = format!(
                 "level {:<width$}",
-                "#".repeat(level as usize),
+                "#".repeat((level / 2) as usize),
                 width = args.max_level as usize
             );
-            print_state(&mut stdout, level_state);
+            print_state(&mut stdout, level_state, 0.);
         }
         stdout.execute(cursor::Show).unwrap();
     } else {
@@ -120,33 +121,40 @@ async fn main() -> anyhow::Result<()> {
 
         // enable playback
         play_tx.send(true).unwrap();
+        let time = Instant::now();
+        let mut prev_sent = 0;
+        let mut final_score = 0.;
 
         // receive samples, analyze them, and set the equipment level accordingly (and also print the levels lol)
-        while let Ok(value) = rx.recv() {
+        while let Ok((bpm, value)) = rx.recv() {
             if shutdown_rx2.try_recv().is_ok() {
                 break;
             }
             if stop_rx.try_recv().is_ok() {
                 break; // stop playback if the stop channel is closed
             }
+            let elapsed = time.elapsed().as_secs();
             let level = freq_score_to_level(args.max_level, value);
-            if ![level, level + 1, level - 1].contains(&prev_level) {
-                prev_level = level;
-                equipment.set_level(level).await?;
+            if prev_sent < elapsed {
+                equipment.set_target_power(level).await?;
+                prev_sent = elapsed;
             }
             let level_state = format!(
-                "level {:<width$}",
-                "#".repeat(level as usize),
+                "value {value:.2} :: level {:<02} {:<width$}",
+                level,
+                "#".repeat((level / 2) as usize),
                 width = args.max_level as usize
             );
             if args.no_read {
-                print_state(&mut stdout, level_state);
+                print_state(&mut stdout, level_state, 0.);
             } else if let Some(data) = equipment.read().await? {
                 let state = format!(
                     "{:03} rpm :: {:03} W :: {:.2} km/h :: {:03} s",
                     data.cadence, data.power, data.speed, data.time
                 );
-                print_state(&mut stdout, format!("{state} :: {level_state}"));
+                let bpm_score = get_score(data.cadence, bpm);
+                final_score += bpm_score;
+                print_state(&mut stdout, format!("{final_score:.2} :: {state} :: {level_state}"), bpm_score);
             }
         }
         stdout.execute(cursor::Show).unwrap();
@@ -159,15 +167,41 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn print_state(stdout: &mut Stdout, input: String) {
+fn print_state(stdout: &mut Stdout, input: String, score: f32) {
+    let input = if score > 0. {
+        input.black().on_yellow()
+    } else {
+        input.stylize()
+    };
     stdout.queue(cursor::SavePosition).unwrap();
-    stdout.write_all(input.as_bytes()).unwrap();
+    stdout.write_all(format!("{input}").as_bytes()).unwrap();
     stdout.queue(cursor::RestorePosition).unwrap();
     stdout.flush().unwrap();
     stdout.queue(cursor::RestorePosition).unwrap();
     stdout
         .queue(terminal::Clear(terminal::ClearType::FromCursorDown))
         .unwrap();
+}
+
+fn get_score(cadence: f32, bpm: Option<u8>) -> f32 {
+    if bpm.is_none() {
+        return 0.;
+    }
+    let bpm = bpm.unwrap() as f32;
+    if ((cadence * 2.) - bpm).abs() < 2. {
+        return 1.;
+    }
+    if (cadence - bpm).abs() < 4. {
+        return 2.;
+    }
+    if (cadence - (bpm * 2.)).abs() < 8. {
+        return 4.;
+    }
+    if (cadence - (bpm * 4.)).abs() < 16. {
+        return 8.;
+    }
+
+    0.
 }
 
 /// Converts a frequency score (0.0 to 1.0) to a level (1 to 64).
@@ -177,6 +211,5 @@ fn freq_score_to_level(max: i16, score: f64) -> i16 {
     let new_min = 1.;
     let new_max = max as f64;
 
-    (((score - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min)
-        .clamp(new_min, new_max) as i16
+    (((score - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min) as i16
 }
