@@ -30,6 +30,20 @@ cargo run -- path/to/album
 
 ## blog
 
+### 2025-08-31
+
+most of this work was done yesterday, but:
+
+- LUFS analyzer has been (re-)implemented, and is used as the default analyzer.
+- if a track has a BPM tag set, it gets now used to score how well the biker follows it.
+    - if the cadence is half (+/- 2 rpm) of the bpm, 1 point per tick is scored
+    - if the cadence is equal to the bpm (+/- 4 rpm), 2 points per tick
+    - twice the bpm (+/- 8 rpm), 4 points per tick
+    - four times???? (+/- 16 rpm), 8 points per tick
+
+i'm considering creating another thread to receive stats and scoring data, and maybe make a richer terminal interface.
+also, at the end of a workout, the cumulative data should be reported to, like, strava or something.
+
 ### 2025-08-29
 
 the communication stack for the exercise equipment has been extracted into a separate project: https://crates.io/crates/kondis

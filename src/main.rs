@@ -1,5 +1,5 @@
 use clap::Parser as _;
-use crossterm::style::{Color, Stylize};
+use crossterm::style::Stylize;
 use crossterm::{ExecutableCommand, QueueableCommand, cursor, terminal};
 use kondis::{EquipmentType, equipment_type_to_equipment};
 use std::io::{Stdout, Write, stdout};
